@@ -14,13 +14,21 @@
 | **Chatbot de atención al cliente** | *Reduce carga del equipo, evita envío accidental de datos sensibles y mantiene un servicio de atención más estable.* | *El cliente puede pegar datos personales, números de pedido o incidencias con información sensible.* |
 | **Asistente interno para empleados** | *Ahorra tiempo al equipo y evita que se usen datos sensibles sin control.* | *Un empleado puede incluir datos de compañeros, clientes, nóminas o incidencias internas.* |
 ---
+## Arranque rápido
+
+1. Clona el repositorio
+2. Copia `.env.example` a `.env` y configura `LLM_API_KEY`
+3. `docker compose up`
+4. Backend: http://localhost:8000/docs (Swagger)
+5. Frontend: abre `frontend/` con Live Server o `python -m http.server 3000`
+
 ## Stack
 | Categoría | Tecnología |
 |-----------|-----------|
 | Backend | Python 3.12+ / FastAPI |
 | API documentation | OpenAPI / Swagger UI |
 | Database | PostgreSQL 16 + SQLAlchemy 2.0 |
-| Authentication | Cookie-based sessions |
+| Authentication | JWT access + refresh tokens |
 | Security | Argon2id password hashing  |
 | Containers | Docker / Docker Compose |
 | Testing | pytest |
