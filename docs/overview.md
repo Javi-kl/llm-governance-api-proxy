@@ -21,7 +21,7 @@ Un proxy local que:
 
 ## Alcance del MVP
 
-- Proxy API con endpoint único de chat
+- Proxy API con endpoint `/api/v1/chat` y endpoint compatible OpenAI `/v1/chat/completions`
 - Detección por regex de 3 categorías: identificación, contacto, financiero
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
@@ -54,6 +54,7 @@ Un proxy local que:
 - [ ] Health check y rate limit en login
 - [ ] Informe de cumplimiento
 - [ ] UI vanilla (chat + panel admin)
+- [ ] Compatibilidad OpenAI API para integrar con Open WebUI
 - [ ] Docker Compose + .env.example
 
 ### Beta

@@ -26,7 +26,7 @@ Tres capas con responsabilidades estrictas:
 | **Detector** | Service | Escanea el prompt con regex, devuelve categorías detectadas |
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
 | **Provider** | Service | Reenvía el prompt (original o enmascarado) al LLM externo |
-| **Chat** | Service + Router | Orquestador: recibe prompt → detector → policy → provider → logger → respuesta |
+| **Chat** | Service + Router | Orquestador para ambos endpoints (`/api/v1/chat` y `/v1/chat/completions`): recibe prompt → detector → policy → provider → logger → respuesta |
 | **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros, genera informe (RF-19) |
 | **Scheduler** | Core | APScheduler: ejecuta limpieza de retención cada 24h |
 
@@ -52,7 +52,6 @@ Cliente
 │  contacto → mask                 │
 │  (block > mask > allow)          │
 └───┬──────────┬──────────┬───────┘
-    │          │          │
     ▼          ▼          ▼
   ALLOW      MASK       BLOCK
     │          │          │
@@ -62,14 +61,12 @@ Cliente
     │     │+ system │     │
     │     │ prompt  │     │
     │     └────┬────┘     │
-    │          │          │
     ▼          ▼          │
 ┌─────────────────┐       │
 │ Provider         │       │
 │ POST → LLM API   │       │
 │ ← respuesta      │       │
 └────────┬─────────┘       │
-         │                 │
          ▼                 ▼
 ┌─────────────────────────────────┐
 │ Logger                           │
@@ -213,6 +210,35 @@ Cliente
 
 **Trade-off:** Si el contenedor está caído semanas, los logs se acumulan. Para MVP local con uso intermitente, aceptable. En producción se puede reforzar con `pg_cron` como respaldo.
 
+---
+
+### ADR-10: Compatibilidad OpenAI API para Open WebUI
+
+**Qué:** El proxy expone `POST /v1/chat/completions` con el mismo formato que la API de OpenAI. Open WebUI se conecta al proxy como si fuera el proveedor real. El proxy intercepta, escanea, aplica política y reenvía al proveedor configurado.
+
+**Por qué:** Open WebUI es un frontend de chat profesional que las empresas ya usan. Implementar un chat desde cero (RF-10) cubre la demo mínima, pero conectar Open WebUI demuestra que el proxy funciona con herramientas reales sin fricción. El formato OpenAI es el estándar de facto — compatible también con AnythingLLM, LibreChat y otros clientes.
+
+**Trade-off:** Dos endpoints de chat que mantener (`/api/v1/chat` propio + `/v1/chat/completions` compatible). La lógica del proxy (detector, policy, provider, logger) es compartida — solo cambia el adaptador de entrada/salida.
+
+---
+
+### ADR-11: SlowAPI para rate limiting general + lógica propia en login
+
+**Qué:** SlowAPI con backend `memory://` como rate limiter general en los endpoints del proxy. El throttle de login (RF-16: 5 fallos → 15 min bloqueo, reset en acierto) se implementa con lógica propia sobre PostgreSQL porque ninguna librería genérica soporta el patrón "reset on success".
+
+**Por qué:** Son dos problemas distintos. SlowAPI resuelve el rate limiting clásico con decoradores y sin código manual. El throttling de login necesita resetear el contador en acierto — eso solo lo da la lógica propia. Usar PostgreSQL evita añadir Redis solo para esto.
+
+**Trade-off:** SlowAPI en memoria no comparte estado entre workers, aceptable en MVP single-worker. Si se escala o Redis entra al stack, se cambia `memory://` por `redis://` sin tocar los decoradores, y el throttle de login se migra a un Lua script atómico. La interfaz de `rate_limit.py` no cambia.
+
+---
+
+### ADR-12: Rollback genérico en get_db para MVP, acotado a futuro
+
+**Qué:** `get_db` hace rollback con `except Exception`, no solo con `SQLAlchemyError`. Cualquier excepción no controlada que escape del servicio deshace la transacción entera.
+
+**Por qué:** El commit es único y está al final de la petición. Si algo falla —sea de BD, de negocio o de red— el commit no se ejecuta, así que el rollback es inofensivo. Acotar a `SQLAlchemyError` exige que cada servicio maneje explícitamente todos sus errores de negocio, lo cual es más robusto pero añade fricción prematura en MVP.
+
+**Trade-off:** Un servicio puede volverse vago con sus errores y delegar el rollback en `database.py` sin pensarlo. En Beta, cuando los servicios maduren y tengan manejo explícito por tipo de error, se acota a `SQLAlchemyError`.
 
 ---
 
@@ -229,5 +255,4 @@ Cliente
 | RAL-4 — Transparencia de bloqueos | AI Act | Art. 13 — Transparencia y comunicación | El usuario sabe cuándo y por qué se bloqueó su solicitud |
 
 > **Aviso:** Este mapeo es orientativo. El cumplimiento normativo requiere revisión por un especialista legal según el contexto específico de cada empresa.
-
 ---

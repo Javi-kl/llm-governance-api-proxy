@@ -8,6 +8,7 @@ Criterios de aceptación:
 - DADO QUE el cuerpo de la solicitud está vacío o falta el campo prompt, CUANDO el proxy la recibe, ENTONCES devuelve error 422 con detalle del campo faltante.
 - DADO QUE la solicitud no incluye credenciales de autenticación, CUANDO el proxy la recibe, ENTONCES devuelve error 401.
 - DADO QUE el proveedor externo no responde en el tiempo límite configurado, CUANDO el proxy reenvía la solicitud, ENTONCES devuelve error 504 con un mensaje controlado, sin exponer detalles del proveedor.
+- DADO QUE envío una solicitud al endpoint `/v1/chat/completions` con formato OpenAI (campo `messages`), CUANDO el proxy la recibe, ENTONCES procesa cada mensaje igual que `/api/v1/chat` y devuelve la respuesta en formato compatible OpenAI.
 ---
 **RF-2. Detección de contenido sensible**
 - Historia: Como sistema, quiero inspeccionar el contenido textual de cada solicitud antes de enviarla al proveedor para detectar categorías sensibles definidas en el MVP.
