@@ -26,7 +26,7 @@ Un proxy local que:
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
 - Bootstrap del primer admin al desplegar
-- Gestión de usuarios desde panel admin (crear, desactivar, resetear PIN)
+- Gestión de usuarios normales desde panel admin (crear, desactivar, resetear PIN). Un único admin; no se crean admins adicionales desde la interfaz.
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
 - Health check, rate limit en login, errores controlados
 - Informe de cumplimiento descargable para auditorías
@@ -49,7 +49,7 @@ Un proxy local que:
 - [ ] Política mask/block por categoría
 - [ ] Autenticación (PIN user, password admin)
 - [ ] Bootstrap del primer admin
-- [ ] Gestión de usuarios desde panel admin
+- [ ] Gestión de usuarios normales desde panel admin (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [ ] Health check y rate limit en login
 - [ ] Informe de cumplimiento
