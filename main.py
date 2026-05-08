@@ -2,17 +2,17 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.db.database import get_db_context
 from app.core.config import get_settings
 from app.routers.auth import router as auth_router
 from app.routers.health import router as health_router
-
+from app.core.bootstrap import bootstrap_admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # settings = get_settings()
-    # with get_db() as db:
-    # bootstrap_admin(db, settings.BOOTSTRAP_ADMIN_PASSWORD)
+    settings = get_settings()
+    with get_db_context() as db:
+        bootstrap_admin(db, settings.BOOTSTRAP_ADMIN_PASSWORD)
     yield
 
 
