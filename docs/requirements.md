@@ -97,7 +97,7 @@ Criterios de aceptación:
 ---
 **RF-13. Bootstrap del primer administrador**
 - Historia: Como sistema, quiero disponer de un mecanismo de bootstrap que cree el primer usuario administrador durante el despliegue inicial, sin exponer un endpoint de registro público de administradores.
-> No existe POST /auth/register público para admin. El primer admin se crea desde variables de entorno en el primer arranque. Los siguientes admins los crea otro admin desde el panel (RF-17).
+> No existe POST /auth/register público para admin. El primer admin se crea desde variables de entorno en el primer arranque. No es posible crear admins adicionales desde el panel de administración (RF-17 gestiona únicamente usuarios con rol user).
 Criterios de aceptación:
 - DADO QUE el sistema arranca por primera vez con las variables de entorno BOOTSTRAP_ADMIN_PASSWORD definida y no existe ningún admin en base de datos, CUANDO el sistema inicia, ENTONCES crea automáticamente el usuario admin.
 - DADO QUE el sistema arranca y ya existe al menos un admin en base de datos, CUANDO el sistema inicia, ENTONCES ignora las variables de bootstrap y no crea duplicados.
@@ -183,7 +183,7 @@ Criterios de aceptación:
 ---
 **RF-17. Gestión de usuarios desde panel admin**
 - Historia: Como usuario administrador, quiero crear, desactivar y resetear el PIN de usuarios normales desde el panel de administración para gestionar el acceso sin intervención técnica.
-> Solo accesible por admin. Las operaciones son sobre usuarios con rol user. No se puede modificar ni eliminar admins desde este panel.
+> Solo accesible por admin. Las operaciones son exclusivamente sobre usuarios con rol user. No se puede crear, modificar ni eliminar admins desde este panel. El sistema opera con un único administrador.
 Criterios de aceptación:
 - DADO QUE un admin crea un usuario con un username y PIN válidos (4-6 dígitos), CUANDO envía el formulario, ENTONCES el usuario queda creado con rol user y estado activo.
 - DADO QUE un admin desactiva un usuario existente, CUANDO confirma la acción, ENTONCES el usuario pasa a estado inactivo y sus sesiones activas se invalidan.

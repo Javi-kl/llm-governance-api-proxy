@@ -71,3 +71,5 @@ debug.log
 #cache
 .vault_cache/
 tmp_vault_sessions/
+# Agent tooling
+.atl/

@@ -4,7 +4,7 @@ from app.core.security import validate_password_strength
 
 class UserCreate(BaseModel):
     username: str
-    password: str
+    pin: str
 
     @field_validator("password")
     @classmethod
@@ -12,11 +12,13 @@ class UserCreate(BaseModel):
 
         return validate_password_strength(password)
 
+       
         
 class UserResponse(BaseModel):
     id: int
     username: str
 
     model_config = {"from_attributes": True}
+
 
     

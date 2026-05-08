@@ -242,6 +242,16 @@ Cliente
 
 ---
 
+### ADR-13: Un único administrador, sin creación de admins desde panel
+
+**Qué:** El sistema soporta exactamente una cuenta de administrador. No existe endpoint, panel ni mecanismo para crear administradores adicionales en runtime. El único admin se crea vía bootstrap (RF-13).
+
+**Por qué:** El MVP está dirigido a pymes y autónomos donde un único responsable técnico gestiona el acceso. Añadir multi-admin introduce complejidad de trazabilidad, escalada de privilegios y lógica de autorización que el producto no necesita en esta etapa. Varias personas pueden compartir la cuenta de admin si el contexto operativo lo requiere.
+
+**Trade-off:** Si el admin olvida sus credenciales o deja la empresa, requiere intervención manual (BD directa o nuevo despliegue con bootstrap). Aceptable para MVP. En fase Beta, si el producto escala a equipos con necesidad de separación de responsabilidades, se evaluará añadir multi-admin con trazabilidad completa.
+
+---
+
 ## Mapeo normativo
 | Requisito del sistema | Regulación | Artículo | Cómo se cumple |
 |---|---|---|---|

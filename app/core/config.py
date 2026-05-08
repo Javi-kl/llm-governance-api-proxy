@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Configuración de la aplicación cargada desde variables de entorno."""
 
     # Base de datos
-    DATABASE_URL: str  # PostgresDsn este tipo no me coge la url de mi db
+    DATABASE_URL: str
     TEST_DATABASE_URL: AnyUrl = AnyUrl("sqlite:///:memory:")
 
     # JWT
