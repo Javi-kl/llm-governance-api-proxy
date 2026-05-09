@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     """Configuración de la aplicación cargada desde variables de entorno."""
 
     # Base de datos
-    DATABASE_URL: HttpUrl
-    TEST_DATABASE_URL: HttpUrl = HttpUrl("sqlite:///:memory:")
+    DATABASE_URL: str
+    TEST_DATABASE_URL: str = "sqlite:///:memory:"
 
     # JWT
     SECRET_KEY: SecretStr
@@ -32,5 +32,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Singleton de configuración — cacheado tras la primera llamada."""
+    """Cacheado tras la primera llamada."""
     return Settings()

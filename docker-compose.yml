@@ -1,0 +1,23 @@
+services:
+  # ── Base de datos ──────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proxy_user
+      POSTGRES_PASSWORD: proxy_pass
+      POSTGRES_DB: proxy_db
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready retorna 0 solo cuando la BD acepta conexiones
+      # Sin esto, la app intenta conectar antes de que Postgres esté listo
+      test: ["CMD-SHELL", "pg_isready -U proxy_user -d proxy_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
