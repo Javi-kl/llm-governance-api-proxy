@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import AnyUrl, SecretStr
+from pydantic import HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     # Base de datos
     DATABASE_URL: str
-    TEST_DATABASE_URL: AnyUrl = AnyUrl("sqlite:///:memory:")
+    TEST_DATABASE_URL: str = "sqlite:///:memory:"
 
     # JWT
     SECRET_KEY: SecretStr
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # LLM externo
     LLM_API_KEY: SecretStr
-    LLM_BASE_URL: AnyUrl
+    LLM_BASE_URL: HttpUrl
     LLM_MODEL: str = "gpt4o"  # No verificado.
 
     # Bootstrap admin
@@ -32,5 +32,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Singleton de configuración — cacheado tras la primera llamada."""
+    """Cacheado tras la primera llamada."""
     return Settings()

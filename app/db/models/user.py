@@ -1,6 +1,5 @@
 import enum
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy import Enum as SQLEnum
@@ -22,8 +21,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(
         String(50), unique=True, index=True, nullable=False
     )
-    pin_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    credential_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(UserRole), nullable=False, default=UserRole.USER
     )
