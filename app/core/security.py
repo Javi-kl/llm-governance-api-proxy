@@ -1,11 +1,44 @@
-from argon2 import PasswordHasher
-from zxcvbn import zxcvbn
 import re
+from datetime import datetime, timedelta, timezone
+
+import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
+from zxcvbn import zxcvbn
+
+from app.core.config import get_settings
+
 password_hasher = PasswordHasher()
+settings = get_settings()
+
+
+def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
+    if expires_delta is None:
+        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(subject),
+        "iat": now,
+        "exp": now + expires_delta,
+    }
+    
+    return jwt.encode(
+        payload, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM
+    )
 
 
 def hash_credential(credential: str) -> str:
     return password_hasher.hash(credential)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return password_hasher.verify(hashed_password, plain_password)
+    except VerifyMismatchError:
+        return False
+    except InvalidHashError:
+        return False
 
 
 def validate_password_strength(password: str) -> str:

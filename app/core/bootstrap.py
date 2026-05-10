@@ -4,7 +4,7 @@ from pydantic import SecretStr
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_credential, validate_password_strength
-from app.db.models.user import UserRole
+from app.core.enums import UserRole
 from app.repositories.user import UserRepository
 
 logger = logging.getLogger(__name__)

@@ -16,7 +16,6 @@ class UserAlreadyExistsError(DomainError):
         self.username = username
         super().__init__(f"El username '{username}' ya está registrado")
 
-
 class UserNotFoundError(DomainError):
     """Se buscó un usuario que no existe."""
 

@@ -33,4 +33,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Cacheado tras la primera llamada."""
-    return Settings()
+    return Settings() # type: ignore[call-arg]

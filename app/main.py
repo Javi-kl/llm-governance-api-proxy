@@ -2,11 +2,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.db.database import get_db_context
-from app.core.config import get_settings
-from app.routers.auth import router as auth_router
-from app.routers.health import router as health_router
+
 from app.core.bootstrap import bootstrap_admin
+from app.core.config import get_settings
+from app.db.database import get_db_context
+from app.routers.admin import router as admin_router
+from app.routers.health import router as health_router
+from app.routers.admin_auth import router as admin_auth_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,4 +33,5 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api/v1")
-app.include_router(auth_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(admin_auth_router, prefix="/api/v1")
