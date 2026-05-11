@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import get_settings
@@ -28,5 +28,11 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+
 # Wrapper para usar con 'with' en lifespan, scripts, tareas..
 get_db_context = contextmanager(get_db)
+
+
+def ping(db: Session) -> bool:
+    db.execute(text("SELECT 1"))
+    return True

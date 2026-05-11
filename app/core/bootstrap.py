@@ -5,14 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_credential, validate_password_strength
 from app.core.enums import UserRole
-from app.repositories.user import UserRepository
+from app.repositories import users
 
 logger = logging.getLogger(__name__)
 
 
 def bootstrap_admin(db: Session, password: SecretStr) -> None:
     """Crea el primer admin si no existe."""
-    if UserRepository.exists_admin(db):
+    if users.exists_admin(db):
         return
 
     if not password.get_secret_value():
@@ -28,4 +28,4 @@ def bootstrap_admin(db: Session, password: SecretStr) -> None:
         raise
 
     credential_hash = hash_credential(password.get_secret_value())
-    UserRepository.create("admin", credential_hash, db, role=UserRole.ADMIN)
+    users.create("admin", credential_hash, db, role=UserRole.ADMIN)

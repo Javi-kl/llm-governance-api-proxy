@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import InvalidCredentialsError
 from app.db.database import get_db
+from app.db.models.user import User
+from app.dependencies.auth_dep import auth_dep
 from app.schemas.common import MessageResponse
 from app.services import admin_auth
 
@@ -18,10 +19,19 @@ def login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
-    try:
-        return admin_auth.login(form, db, response)
-    except InvalidCredentialsError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales no válidas",
-        )
+
+    return admin_auth.login(form, db, response)
+
+
+@router.post(
+    "/logout",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+def logout(
+    response: Response,
+    request: Request,
+    current_user: Annotated[User, Depends(auth_dep)],
+) -> MessageResponse:
+
+    return admin_auth.logout(response, current_user)
