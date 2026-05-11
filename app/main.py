@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.bootstrap import bootstrap_admin
-from app.core.config import get_settings
+from app.core import config
 from app.core.exceptions import InvalidCredentialsError
 from app.db.database import get_db_context
 from app.routers.admin import router as admin_router
@@ -15,9 +15,8 @@ from app.routers.admin_auth import router as admin_auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
     with get_db_context() as db:
-        bootstrap_admin(db, settings.BOOTSTRAP_ADMIN_PASSWORD)
+        bootstrap_admin(db, config.get_settings().BOOTSTRAP_ADMIN_PASSWORD)
     yield
 
 

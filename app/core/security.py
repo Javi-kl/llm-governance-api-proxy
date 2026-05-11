@@ -6,18 +6,17 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from zxcvbn import zxcvbn
 
-from app.core.config import get_settings
+from app.core import config
 from app.core.enums import UserRole
 
 password_hasher = PasswordHasher()
-settings = get_settings()
 
 
 def create_access_token(
     subject: str, role: UserRole, expires_delta: timedelta | None = None
 ) -> str:
     if expires_delta is None:
-        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta = timedelta(minutes=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
 
     now = datetime.now(timezone.utc)
     payload = {
@@ -28,7 +27,7 @@ def create_access_token(
     }
 
     return jwt.encode(
-        payload, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM
+        payload, config.get_settings().SECRET_KEY.get_secret_value(), algorithm=config.get_settings().ALGORITHM
     )
 
 

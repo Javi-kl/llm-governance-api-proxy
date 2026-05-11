@@ -14,7 +14,6 @@ logger = logging.getLogger("auth_service")
 
 
 def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
-    settings = config.get_settings()
     token = request.cookies.get("access_token")
     if not token:
         logger.warning("Token no válido")
@@ -22,8 +21,8 @@ def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
     try:
         payload = jwt.decode(
             token,
-            settings.SECRET_KEY.get_secret_value(),
-            algorithms=[settings.ALGORITHM],
+            config.get_settings().SECRET_KEY.get_secret_value(),
+            algorithms=[config.get_settings().ALGORITHM],
         )
         user_name = payload.get("sub", "")
 

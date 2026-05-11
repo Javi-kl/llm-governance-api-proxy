@@ -8,8 +8,8 @@ from app.core import config, enums, exceptions, security
 from app.db.models.user import User
 from app.repositories import users
 from app.schemas.common import MessageResponse
+from app.schemas.user import ChangePasswordRequest
 
-settings = config.get_settings()
 logger = logging.getLogger("auth_service")
 
 
@@ -38,8 +38,8 @@ def login(
         key="access_token",
         value=token,
         httponly=True,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=settings.COOKIE_SECURE,
+        max_age=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=config.get_settings().COOKIE_SECURE,
         samesite="lax",
         path="/",
     )
@@ -47,7 +47,23 @@ def login(
     logger.info("Login exitoso para: %s", user.username)
     return MessageResponse(message="login correcto")
 
-
+def change_password(
+    user: User,
+    password_data: ChangePasswordRequest,
+    db: Session,
+) -> MessageResponse:
+    
+    if not security.verify_password(password_data.current_password, user.credential_hash):
+        logger.warning("Cambio de contraseña fallido: contraseña actual incorrecta para: %s", user.username)
+        raise exceptions.InvalidCredentialsError()
+        
+    if password_data.current_password == password_data.new_password:
+        raise exceptions.PasswordReuseError()
+        
+    users.update_password(user, security.hash_credential(password_data.new_password), db)
+    logger.info("Cambio de contraseña exitoso para: %s", user.username)
+    return MessageResponse(message="Contraseña actualizada correctamente")
+    
 def logout(response: Response, current_user: User) -> MessageResponse:
     response.delete_cookie(
         key="access_token",

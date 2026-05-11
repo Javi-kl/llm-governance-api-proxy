@@ -37,3 +37,8 @@ class WeakPasswordError(DomainError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(f"Contraseña débil: {reason}")
+
+class PasswordReuseError(DomainError):
+    """La nueva contraseña no puede ser igual a la actual."""
+    def __init__(self) -> None:
+        super().__init__("La nueva contraseña no puede ser igual a la actual")

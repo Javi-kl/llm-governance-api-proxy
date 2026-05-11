@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from app.core.enums import UserRole
 from app.db.models.user import User
-
 
 
 def create(
@@ -13,12 +13,19 @@ def create(
     db.flush()
     return user
 
+
 def get_by_username(username: str, db: Session) -> User | None:
     return db.execute(
         select(User).where(User.username == username)
     ).scalar_one_or_none()
 
+
 def exists_admin(db: Session) -> User | None:
     return db.execute(
         select(User).where(User.role == UserRole.ADMIN)
     ).scalar_one_or_none()
+
+
+def update_password(user: User, password_hash: str, db: Session) -> None:
+    user.credential_hash = password_hash
+    db.flush()
