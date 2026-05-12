@@ -1,4 +1,3 @@
-import enum
 from datetime import datetime
 
 from sqlalchemy import DateTime, String, func
@@ -6,12 +5,8 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.sqltypes import Boolean
 
+from app.core.enums import UserRole
 from app.db.database import Base
-
-
-class UserRole(str, enum.Enum):
-    USER = "user"
-    ADMIN = "admin"
 
 
 class User(Base):
