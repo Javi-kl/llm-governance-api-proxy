@@ -42,3 +42,8 @@ class PasswordReuseError(DomainError):
     """La nueva contraseña no puede ser igual a la actual."""
     def __init__(self) -> None:
         super().__init__("La nueva contraseña no puede ser igual a la actual")
+
+class PermissionDeniedError(DomainError):
+    """Permiso denegado."""
+    def __init__(self) -> None:
+        super().__init__("No tienes permiso para hacer eso.")
