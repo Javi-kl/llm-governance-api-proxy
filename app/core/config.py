@@ -9,7 +9,6 @@ class Settings(BaseSettings):
 
     # Base de datos
     DATABASE_URL: str
-    TEST_DATABASE_URL: str = "sqlite:///:memory:"
 
     # JWT
     SECRET_KEY: SecretStr
