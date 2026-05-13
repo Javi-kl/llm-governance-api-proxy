@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # LLM externo
     LLM_API_KEY: SecretStr
     LLM_BASE_URL: HttpUrl
-    LLM_MODEL: str = "gpt4o"  # No verificado.
+    LLM_MODEL: str = ""  
 
     # Bootstrap admin
     BOOTSTRAP_ADMIN_PASSWORD: SecretStr = SecretStr("")

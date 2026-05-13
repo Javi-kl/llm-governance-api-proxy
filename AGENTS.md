@@ -156,6 +156,8 @@ Estas reglas son críticas y están documentadas en detalle en `docs/requirement
 
 ## 7. Testing
 
+**Skill de testing**: Ver [pytest-testing](../../home/javier/.config/opencode/skills/pytest-testing/SKILL.md) para la guía completa de qué testear, cuántos tests crear, y distribución 60/30/10.
+
 ```bash
 # Correr todos los tests
 pytest

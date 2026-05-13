@@ -22,15 +22,11 @@ TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    """Crea tablas en SQLite y devuelve una sesión limpia.
-    Al terminar el test, hace rollback para que el siguiente test empiece desde cero."""
+    """Crea tablas en SQLite -> devuelve una sesión limpia -> borra las tablas."""
     Base.metadata.create_all(bind=test_engine)
     session = TestSessionLocal()
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
+    yield session
+    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture
@@ -53,7 +49,7 @@ def mock_response() -> MagicMock:
 
 
 @pytest.fixture
-def mock_request():
+def mock_request() -> MagicMock:
     """Mock de Request con .cookies como dict configurable."""
     req = MagicMock(spec=Request)
     req.cookies = {}
@@ -70,7 +66,7 @@ def admin_user(db_session: Session) -> User:
 
 
 @pytest.fixture
-def regular_user(db_session):
+def regular_user(db_session) -> User:
     """Crea un usuario normal en la BD de test y lo devuelve."""
     credential_hash = security.hash_credential("123456")
     user = users.create("testuser", credential_hash, db_session, role=UserRole.USER)
