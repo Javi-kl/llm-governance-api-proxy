@@ -9,7 +9,6 @@ class Settings(BaseSettings):
 
     # Base de datos
     DATABASE_URL: str
-    TEST_DATABASE_URL: str = "sqlite:///:memory:"
 
     # JWT
     SECRET_KEY: SecretStr
@@ -22,7 +21,7 @@ class Settings(BaseSettings):
     # LLM externo
     LLM_API_KEY: SecretStr
     LLM_BASE_URL: HttpUrl
-    LLM_MODEL: str = "gpt4o"  # No verificado.
+    LLM_MODEL: str = ""  
 
     # Bootstrap admin
     BOOTSTRAP_ADMIN_PASSWORD: SecretStr = SecretStr("")

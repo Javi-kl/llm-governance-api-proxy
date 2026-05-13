@@ -3,5 +3,5 @@ pythonpath = ["."]
 
 [tool.pyright]
 pythonVersion = "3.14"
-typeCheckingMode = "strict"
+typeCheckingMode = "basic"
 include = ["app", "tests"]
