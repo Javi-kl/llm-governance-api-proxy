@@ -1,12 +1,13 @@
 from datetime import timedelta
 from typing import Generator
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import Request, Response
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.core import security
 from app.core.enums import UserRole
@@ -15,8 +16,13 @@ from app.db.models.user import User
 from app.main import app
 from app.repositories import users
 
-# Engine de test: SQLite en memoria, se destruye al cerrar el proceso
-test_engine = create_engine("sqlite:///:memory:", echo=False)
+# Engine de test: SQLite en memoria compartido entre threads
+test_engine = create_engine(
+    "sqlite:///:memory:",
+    echo=False,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
 
 
@@ -37,8 +43,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
+    with patch("app.main.bootstrap_admin"):
+        with TestClient(app) as test_client:
+            yield test_client
     app.dependency_overrides.clear()
 
 
