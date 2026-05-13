@@ -25,6 +25,7 @@ jobs:
       - name: Run tests
         run: pytest
         env:
+          DATABASE_URL: "sqlite:///unused-but-required-by-pydantic"
           SECRET_KEY: ci-test-secret-key-do-not-use-in-prod-abc1234567890
           ALGORITHM: HS256
           COOKIE_SECURE: "0"
