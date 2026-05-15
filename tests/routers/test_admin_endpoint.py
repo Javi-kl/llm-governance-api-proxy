@@ -57,3 +57,67 @@ def test_given_no_auth_then_returns_401(client: TestClient):
     response = client.get("/api/v1/admin/users")
 
     assert response.status_code == 401
+
+
+# ── PATCH /admin/users/{user_id}/deactivate ───────────────
+
+
+def test_given_admin_deactivates_user_then_returns_200(
+    client: TestClient, admin_user: User, regular_user: User
+):
+    login_response = client.post(
+        "/api/v1/admin/auth/login",
+        data={"username": "admin", "password": "admin12345"},
+    )
+    client.cookies = login_response.cookies
+
+    response = client.patch(f"/api/v1/admin/users/{regular_user.id}/deactivate")
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "Usuario desactivado."
+
+
+def test_given_nonexistent_user_then_returns_404(
+    client: TestClient, admin_user: User
+):
+    login_response = client.post(
+        "/api/v1/admin/auth/login",
+        data={"username": "admin", "password": "admin12345"},
+    )
+    client.cookies = login_response.cookies
+
+    response = client.patch("/api/v1/admin/users/9999/deactivate")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Usuario no encontrado"
+
+
+def test_given_admin_target_then_returns_422(
+    client: TestClient, admin_user: User
+):
+    login_response = client.post(
+        "/api/v1/admin/auth/login",
+        data={"username": "admin", "password": "admin12345"},
+    )
+    client.cookies = login_response.cookies
+
+    response = client.patch(f"/api/v1/admin/users/{admin_user.id}/deactivate")
+
+    assert response.status_code == 422
+
+
+def test_given_regular_user_then_returns_403_on_deactivate(
+    client: TestClient, regular_user: User
+):
+    token = create_token("testuser", UserRole.USER)
+    client.cookies = {"access_token": token}
+
+    response = client.patch(f"/api/v1/admin/users/{regular_user.id}/deactivate")
+
+    assert response.status_code == 403
+
+
+def test_given_no_auth_then_returns_401_on_deactivate(client: TestClient):
+    response = client.patch("/api/v1/admin/users/1/deactivate")
+
+    assert response.status_code == 401
