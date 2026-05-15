@@ -1,3 +1,4 @@
+from typing import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -20,6 +21,10 @@ def get_by_username(username: str, db: Session) -> User | None:
     ).scalar_one_or_none()
 
 
+def get_by_id(id: int, db: Session) -> User | None:
+    return db.execute(select(User).where(User.id == id)).scalar_one_or_none()
+
+
 def exists_admin(db: Session) -> User | None:
     return db.execute(
         select(User).where(User.role == UserRole.ADMIN)
@@ -30,10 +35,14 @@ def update_password(user: User, password_hash: str, db: Session) -> None:
     user.credential_hash = password_hash
     db.flush()
 
+def deactivate_user(user:User, db:Session) -> None:
+    user.active = False
+    db.flush()
 
+    
 def get_all_normal_users(
     db: Session, offset: int = 0, limit: int = 50
-) -> tuple[list[User], int]:
+) -> tuple[Sequence[User], int]:
     """Devuelve usuarios con role=USER y el total. Soporta paginación."""
     base_query = select(User).where(User.role == UserRole.USER)
 
@@ -41,8 +50,6 @@ def get_all_normal_users(
         select(func.count()).select_from(base_query.subquery())
     ).scalar_one()
 
-    result_users = db.execute(
-        base_query.offset(offset).limit(limit)
-    ).scalars().all()
+    result_users = db.execute(base_query.offset(offset).limit(limit)).scalars().all()
 
     return result_users, total

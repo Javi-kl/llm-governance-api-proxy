@@ -16,12 +16,13 @@ class UserAlreadyExistsError(DomainError):
         self.username = username
         super().__init__(f"El username '{username}' ya está registrado")
 
+
 class UserNotFoundError(DomainError):
     """Se buscó un usuario que no existe."""
 
-    def __init__(self, username: str) -> None:
-        self.username = username
-        super().__init__(f"Usuario '{username}' no encontrado")
+    def __init__(self, identifier: str | int) -> None:
+        self.identifier = identifier
+        super().__init__(f"Usuario '{identifier}' no encontrado")
 
 
 class InvalidCredentialsError(DomainError):
@@ -38,12 +39,22 @@ class WeakPasswordError(DomainError):
         self.reason = reason
         super().__init__(f"Contraseña débil: {reason}")
 
+
 class PasswordReuseError(DomainError):
     """La nueva contraseña no puede ser igual a la actual."""
+
     def __init__(self) -> None:
         super().__init__("La nueva contraseña no puede ser igual a la actual")
 
+
 class PermissionDeniedError(DomainError):
     """Permiso denegado."""
+
     def __init__(self) -> None:
         super().__init__("No tienes permiso para hacer eso.")
+
+class CannotDeactivateAdminError(DomainError):
+    """Un admin no se puede desactivar"""
+    
+    def __init__(self) -> None:
+        super().__init__("El administrador no puede ser desactivado.")

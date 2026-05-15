@@ -48,3 +48,4 @@ def test_given_offset_and_limit_then_paginates_correctly(
 
     assert total == 3
     assert len(result_users) == expected_count
+

@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.core import exceptions, security
+from app.core import enums, exceptions, security
 from app.repositories import users
+from app.schemas.common import MessageResponse
 from app.schemas.user import UserCreate, UserListResponse, UserResponse
 
 
@@ -23,3 +24,15 @@ def list_users(db: Session, offset: int = 0, limit: int = 50) -> UserListRespons
         items=[UserResponse.model_validate(u) for u in result_users],
         total=total,
     )
+
+
+def deactivate_user(user_id: int, db: Session) -> MessageResponse:
+    user = users.get_by_id(user_id, db)
+    if not user:
+        raise exceptions.UserNotFoundError(user_id)
+    if user.role == enums.UserRole.ADMIN:
+        raise exceptions.CannotDeactivateAdminError()
+    if not user.active:
+        return MessageResponse(message="El usuario ya estaba desactivado.")
+    users.deactivate_user(user, db)
+    return MessageResponse(message="Usuario desactivado.")

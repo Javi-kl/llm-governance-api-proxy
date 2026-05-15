@@ -7,6 +7,7 @@ from app.core import exceptions
 from app.db.database import get_db
 from app.db.models.user import User
 from app.dependencies.auth_dep import require_admin
+from app.schemas.common import MessageResponse
 from app.schemas.user import UserCreate, UserListResponse, UserResponse
 from app.services import admin
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post(
-    "/register",
+    "/users/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -45,3 +46,21 @@ def list_users(
 ):
     return admin.list_users(db, offset=offset, limit=limit)
 
+
+@router.patch(
+    "/users/{user_id}/deactivate",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+def deactivate_users(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return admin.deactivate_user(user_id, db)
+    except exceptions.CannotDeactivateAdminError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="El administrador no puede ser desactivado.",
+        )

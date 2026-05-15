@@ -13,7 +13,7 @@ def test_given_valid_data_then_returns_201(client: TestClient, admin_user):
     client.cookies = login_response.cookies
 
     response = client.post(
-        "/api/v1/admin/register", json={"username": "newuser", "pin": "12345"}
+        "/api/v1/admin/users/register", json={"username": "newuser", "pin": "12345"}
     )
 
     assert response.status_code == 201
