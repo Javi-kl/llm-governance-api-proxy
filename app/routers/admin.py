@@ -74,9 +74,9 @@ def deactivate_user(
 )
 def reset_user_pin(
     user_id: int,
-    new_pin: UserPinResetRequest,
+    user_pin: UserPinResetRequest,
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(require_admin)],
 ):
 
-    return admin.reset_user_pin(user_id, new_pin, db)
+    return admin.reset_user_pin(user_id, user_pin, db)

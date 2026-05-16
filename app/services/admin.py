@@ -33,25 +33,24 @@ def list_users(db: Session, offset: int = 0, limit: int = 50) -> UserListRespons
 
 
 def deactivate_user(user_id: int, db: Session) -> MessageResponse:
-    try:
-        user = _get_normal_active_user_or_raise(user_id, db)
-    except exceptions.InactiveUserError:
-        return MessageResponse(message="El usuario ya estaba desactivado.")
+
+    user = _get_normal_active_user_or_raise(user_id, db)
     users.deactivate_user(user, db)
     return MessageResponse(message="Usuario desactivado.")
 
 
 def reset_user_pin(
-    user_id: int, new_pin: UserPinResetRequest, db: Session
+    user_id: int, user_pin: UserPinResetRequest, db: Session
 ) -> MessageResponse:
 
     user = _get_normal_active_user_or_raise(user_id, db)
-    users.reset_user_pin(user, security.hash_credential(new_pin.new_pin), db)
-    return MessageResponse(message="Pin de Usuario modificado.")
+    users.reset_user_pin(user, security.hash_credential(user_pin.pin), db)
+    return MessageResponse(message="PIN de usuario modificado.")
 
 
 def _get_normal_active_user_or_raise(user_id: int, db: Session) -> User:
     """Devuelve un usuario normal y activo. Lanza si no existe, es admin o está inactivo."""
+    
     user = users.get_by_id(user_id, db)
     if not user:
         raise exceptions.UserNotFoundError(user_id)

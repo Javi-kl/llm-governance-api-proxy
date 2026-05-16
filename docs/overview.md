@@ -1,6 +1,6 @@
 ## Contexto
 
-Las pymes y autónomos europeos usan cada vez más LLMs (ChatGPT, Claude, etc.) en su día a día. Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos. Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
+Las pymes y autónomos europeos usan cada vez más LLMs (ChatGPT, Claude, etc.). Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos. Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
 
 ## Objetivo del MVP
 
