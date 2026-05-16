@@ -31,7 +31,15 @@ class UserListResponse(BaseModel):
     items: list[UserResponse]
     total: int
 
+class UserPinResetRequest(BaseModel):
+    new_pin: str
 
+    @field_validator("new_pin")
+    @classmethod
+    def validate_new_pin(cls, new_pin: str) -> str:
+        return security.validate_pin(new_pin)
+        
+    
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str

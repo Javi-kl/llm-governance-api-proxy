@@ -53,8 +53,14 @@ class PermissionDeniedError(DomainError):
     def __init__(self) -> None:
         super().__init__("No tienes permiso para hacer eso.")
 
-class CannotDeactivateAdminError(DomainError):
-    """Un admin no se puede desactivar"""
+class CannotModifyAdminError(DomainError):
+    """Un admin no se puede modificar"""
     
     def __init__(self) -> None:
-        super().__init__("El administrador no puede ser desactivado.")
+        super().__init__("El administrador no puede ser modificado.")
+
+class InactiveUserError(DomainError):
+    "Usuario inactivo"
+    
+    def __init__(self) -> None:
+        super().__init__("El usuario está desactivado.")

@@ -39,6 +39,9 @@ def deactivate_user(user:User, db:Session) -> None:
     user.active = False
     db.flush()
 
+def reset_user_pin(user: User, pin_hash: str, db: Session) -> None:
+    user.credential_hash = pin_hash
+    db.flush()
     
 def get_all_normal_users(
     db: Session, offset: int = 0, limit: int = 50

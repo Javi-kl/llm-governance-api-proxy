@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
-    CannotDeactivateAdminError,
+    CannotModifyAdminError,
     UserAlreadyExistsError,
     UserNotFoundError,
 )
@@ -10,7 +10,6 @@ from app.db.models.user import User
 from app.schemas.user import UserCreate
 from app.services import admin
 from app.services.admin import register
-
 
 # ── register ──────────────────────────────────────────────
 
@@ -36,9 +35,7 @@ def test_given_duplicate_username_then_raises_user_already_exists(
 # ── deactivate_user ───────────────────────────────────────
 
 
-def test_given_active_user_then_deactivates(
-    db_session: Session, regular_user: User
-):
+def test_given_active_user_then_deactivates(db_session: Session, regular_user: User):
     result = admin.deactivate_user(regular_user.id, db_session)
 
     assert result.message == "Usuario desactivado."
@@ -65,5 +62,5 @@ def test_given_nonexistent_user_then_raises_user_not_found(db_session: Session):
 def test_given_admin_user_then_raises_cannot_deactivate(
     db_session: Session, admin_user: User
 ):
-    with pytest.raises(CannotDeactivateAdminError):
+    with pytest.raises(CannotModifyAdminError):
         admin.deactivate_user(admin_user.id, db_session)

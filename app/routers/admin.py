@@ -8,7 +8,12 @@ from app.db.database import get_db
 from app.db.models.user import User
 from app.dependencies.auth_dep import require_admin
 from app.schemas.common import MessageResponse
-from app.schemas.user import UserCreate, UserListResponse, UserResponse
+from app.schemas.user import (
+    UserCreate,
+    UserListResponse,
+    UserPinResetRequest,
+    UserResponse,
+)
 from app.services import admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -52,15 +57,26 @@ def list_users(
     response_model=MessageResponse,
     status_code=status.HTTP_200_OK,
 )
-def deactivate_users(
+def deactivate_user(
     user_id: int,
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(require_admin)],
 ):
-    try:
-        return admin.deactivate_user(user_id, db)
-    except exceptions.CannotDeactivateAdminError:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="El administrador no puede ser desactivado.",
-        )
+
+    return admin.deactivate_user(user_id, db)
+
+
+
+@router.patch(
+    "/users/{user_id}/pin",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+def reset_user_pin(
+    user_id: int,
+    new_pin: UserPinResetRequest,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User, Depends(require_admin)],
+):
+
+    return admin.reset_user_pin(user_id, new_pin, db)
