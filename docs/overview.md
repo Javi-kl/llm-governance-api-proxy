@@ -48,8 +48,8 @@ Un proxy local que:
 - [ ] Detección regex de 3 categorías (identificación, contacto, financiero)
 - [ ] Política mask/block por categoría
 - [ ] Autenticación (PIN user, password admin)
-- [ ] Bootstrap del primer admin
-- [ ] Gestión de usuarios normales desde panel admin (rol user únicamente)
+- [X] Bootstrap del primer admin
+- [X] Gestión de usuarios normales desde panel admin (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [ ] Health check y rate limit en login
 - [ ] Informe de cumplimiento

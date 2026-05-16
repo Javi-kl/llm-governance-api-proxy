@@ -8,7 +8,7 @@ from app.core.bootstrap import bootstrap_admin
 from app.core.handlers import register_exception_handlers
 from app.db.database import get_db_context
 from app.routers.admin import router as admin_router
-from app.routers.admin_auth import router as admin_auth_router
+from app.routers.auth import router as auth_router
 from app.routers.health import router as health_router
 
 
@@ -35,5 +35,5 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
-app.include_router(admin_auth_router, prefix="/api/v1")

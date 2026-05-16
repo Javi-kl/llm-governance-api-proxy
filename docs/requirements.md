@@ -118,9 +118,9 @@ Criterios de aceptación:
 - Historia: Como sistema, quiero autenticar a los usuarios normales mediante PIN numérico y a los administradores mediante contraseña robusta, adaptando el mecanismo al perfil de riesgo de cada rol.
 > El login es el mismo endpoint (POST /api/v1/auth/login). El sistema distingue el rol buscando primero en usuarios y luego en admins, o mediante un campo role en la petición. Si las credenciales no coinciden con ningún rol, devuelve error genérico.
 Criterios de aceptación:
-- DADO QUE envío credenciales con role: "user" y un PIN de 4 dígitos, CUANDO hago login, ENTONCES el sistema solo valida contra usuarios, no contra admins.
+- DADO QUE envío credenciales con role: "user" y un PIN de 5-6 dígitos, CUANDO hago login, ENTONCES el sistema solo valida contra usuarios, no contra admins.
 - DADO QUE envío credenciales sin el campo role, CUANDO hago login, ENTONCES el sistema devuelve error 422 indicando que el campo es obligatorio.
-- DADO QUE un usuario normal envía su username y PIN correcto (4-6 dígitos), CUANDO hace login, ENTONCES el sistema crea una sesión y devuelve cookie con rol user.
+- DADO QUE un usuario normal envía su username y PIN correcto (5-6 dígitos), CUANDO hace login, ENTONCES el sistema crea una sesión y devuelve cookie con rol user.
 - DADO QUE un administrador envía su username y contraseña correcta, CUANDO hace login, ENTONCES el sistema crea una sesión y devuelve cookie con rol admin.
 - DADO QUE un usuario envía un PIN incorrecto, CUANDO hace login, ENTONCES el sistema devuelve error 401 con mensaje genérico "credenciales inválidas" — sin revelar si el usuario existe o no.
 - DADO QUE un administrador envía una contraseña incorrecta, CUANDO hace login, ENTONCES el sistema devuelve error 401 con el mismo mensaje genérico que para usuario.
@@ -185,7 +185,7 @@ Criterios de aceptación:
 - Historia: Como usuario administrador, quiero crear, desactivar y resetear el PIN de usuarios normales desde el panel de administración para gestionar el acceso sin intervención técnica.
 > Solo accesible por admin. Las operaciones son exclusivamente sobre usuarios con rol user. No se puede crear, modificar ni eliminar admins desde este panel. El sistema opera con un único administrador.
 Criterios de aceptación:
-- DADO QUE un admin crea un usuario con un username y PIN válidos (4-6 dígitos), CUANDO envía el formulario, ENTONCES el usuario queda creado con rol user y estado activo.
+- DADO QUE un admin crea un usuario con un username y PIN válidos (5-6 dígitos), CUANDO envía el formulario, ENTONCES el usuario queda creado con rol user y estado activo.
 - DADO QUE un admin desactiva un usuario existente, CUANDO confirma la acción, ENTONCES el usuario pasa a estado inactivo y sus sesiones activas se invalidan.
 - DADO QUE un admin intenta desactivar un usuario ya inactivo, CUANDO envía la acción, ENTONCES el sistema devuelve error 422 indicando que el usuario ya está inactivo.
 - DADO QUE un admin resetea el PIN de un usuario, CUANDO envía el nuevo PIN, ENTONCES el PIN del usuario se actualiza y sus sesiones activas se invalidan.

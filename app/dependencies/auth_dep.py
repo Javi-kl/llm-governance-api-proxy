@@ -24,12 +24,12 @@ def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
             config.get_settings().SECRET_KEY.get_secret_value(),
             algorithms=[config.get_settings().ALGORITHM],
         )
-        user_name = payload.get("sub", "")
+        user_id = int(payload.get("sub", 0))
 
     except (InvalidTokenError, ValueError):
         raise exceptions.InvalidCredentialsError()
 
-    user = users.get_by_username(user_name, db)
+    user = users.get_by_id(user_id, db)
 
     if user is None or not user.active:
         raise exceptions.InvalidCredentialsError()

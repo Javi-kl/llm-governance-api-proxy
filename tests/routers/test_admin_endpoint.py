@@ -7,8 +7,8 @@ from tests.conftest import create_token
 
 def test_given_valid_data_then_returns_201(client: TestClient, admin_user):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -27,8 +27,8 @@ def test_given_admin_token_then_returns_user_list(
     client: TestClient, admin_user: User, regular_user: User
 ):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -45,7 +45,7 @@ def test_given_admin_token_then_returns_user_list(
 def test_given_regular_user_token_then_returns_403(
     client: TestClient, regular_user: User
 ):
-    token = create_token("testuser", UserRole.USER)
+    token = create_token(regular_user.id, UserRole.USER)
     client.cookies = {"access_token": token}
 
     response = client.get("/api/v1/admin/users")
@@ -66,8 +66,8 @@ def test_given_admin_deactivates_user_then_returns_200(
     client: TestClient, admin_user: User, regular_user: User
 ):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -79,8 +79,8 @@ def test_given_admin_deactivates_user_then_returns_200(
 
 def test_given_nonexistent_user_then_returns_404(client: TestClient, admin_user: User):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -92,8 +92,8 @@ def test_given_nonexistent_user_then_returns_404(client: TestClient, admin_user:
 
 def test_given_admin_target_then_returns_422(client: TestClient, admin_user: User):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -109,8 +109,8 @@ def test_given_inactive_user_then_returns_422_on_deactivate(
     db_session.commit()
 
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -122,7 +122,7 @@ def test_given_inactive_user_then_returns_422_on_deactivate(
 def test_given_regular_user_then_returns_403_on_deactivate(
     client: TestClient, regular_user: User
 ):
-    token = create_token("testuser", UserRole.USER)
+    token = create_token(regular_user.id, UserRole.USER)
     client.cookies = {"access_token": token}
 
     response = client.patch(f"/api/v1/admin/users/{regular_user.id}/deactivate")
@@ -143,8 +143,8 @@ def test_given_admin_resets_pin_then_returns_200(
     client: TestClient, admin_user: User, regular_user: User
 ):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -161,8 +161,8 @@ def test_given_nonexistent_user_then_returns_404_on_pin_reset(
     client: TestClient, admin_user: User
 ):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -179,8 +179,8 @@ def test_given_admin_target_then_returns_422_on_pin_reset(
     client: TestClient, admin_user: User
 ):
     login_response = client.post(
-        "/api/v1/admin/auth/login",
-        data={"username": "admin", "password": "admin12345"},
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
     )
     client.cookies = login_response.cookies
 
@@ -195,7 +195,7 @@ def test_given_admin_target_then_returns_422_on_pin_reset(
 def test_given_regular_user_then_returns_403_on_pin_reset(
     client: TestClient, regular_user: User
 ):
-    token = create_token("testuser", UserRole.USER)
+    token = create_token(regular_user.id, UserRole.USER)
     client.cookies = {"access_token": token}
 
     response = client.patch(

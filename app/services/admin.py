@@ -3,17 +3,16 @@ from sqlalchemy.orm import Session
 from app.core import enums, exceptions, security
 from app.db.models.user import User
 from app.repositories import users
+from app.schemas.auth import UserPinResetRequest
 from app.schemas.common import MessageResponse
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
-    UserPinResetRequest,
     UserResponse,
 )
 
 
 def register(user_data: UserCreate, db: Session) -> UserResponse:
-
     existing_user = users.get_by_username(user_data.username, db)
     if existing_user:
         raise exceptions.UserAlreadyExistsError(user_data.username)
@@ -33,7 +32,6 @@ def list_users(db: Session, offset: int = 0, limit: int = 50) -> UserListRespons
 
 
 def deactivate_user(user_id: int, db: Session) -> MessageResponse:
-
     user = _get_normal_active_user_or_raise(user_id, db)
     users.deactivate_user(user, db)
     return MessageResponse(message="Usuario desactivado.")
@@ -50,7 +48,7 @@ def reset_user_pin(
 
 def _get_normal_active_user_or_raise(user_id: int, db: Session) -> User:
     """Devuelve un usuario normal y activo. Lanza si no existe, es admin o está inactivo."""
-    
+
     user = users.get_by_id(user_id, db)
     if not user:
         raise exceptions.UserNotFoundError(user_id)

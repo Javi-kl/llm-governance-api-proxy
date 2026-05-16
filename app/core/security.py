@@ -13,7 +13,7 @@ password_hasher = PasswordHasher()
 
 
 def create_access_token(
-    subject: str, role: UserRole, expires_delta: timedelta | None = None
+    subject: int, role: UserRole, expires_delta: timedelta | None = None
 ) -> str:
     if expires_delta is None:
         expires_delta = timedelta(minutes=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)

@@ -82,6 +82,6 @@ def regular_user(db_session) -> User:
 
 
 def create_token(
-    subject: str, role: UserRole, expires_delta: timedelta | None = None
+    subject: int, role: UserRole, expires_delta: timedelta | None = None
 ) -> str:
     return security.create_access_token(subject, role, expires_delta)

@@ -8,7 +8,8 @@ from app.core.exceptions import (
     UserNotFoundError,
 )
 from app.db.models.user import User
-from app.schemas.user import UserCreate, UserPinResetRequest
+from app.schemas.auth import UserPinResetRequest
+from app.schemas.user import UserCreate
 from app.services import admin
 from app.services.admin import register
 

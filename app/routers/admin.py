@@ -11,9 +11,9 @@ from app.schemas.common import MessageResponse
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
-    UserPinResetRequest,
     UserResponse,
 )
+from app.schemas.auth import UserPinResetRequest
 from app.services import admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -64,7 +64,6 @@ def deactivate_user(
 ):
 
     return admin.deactivate_user(user_id, db)
-
 
 
 @router.patch(
