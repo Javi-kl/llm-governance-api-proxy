@@ -1,6 +1,6 @@
 ## Contexto
 
-Las pymes y autónomos europeos usan cada vez más LLMs (ChatGPT, Claude, etc.) en su día a día. Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos. Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
+Las pymes y autónomos europeos usan cada vez más LLMs (ChatGPT, Claude, etc.). Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos. Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
 
 ## Objetivo del MVP
 
@@ -48,8 +48,8 @@ Un proxy local que:
 - [ ] Detección regex de 3 categorías (identificación, contacto, financiero)
 - [ ] Política mask/block por categoría
 - [ ] Autenticación (PIN user, password admin)
-- [ ] Bootstrap del primer admin
-- [ ] Gestión de usuarios normales desde panel admin (rol user únicamente)
+- [X] Bootstrap del primer admin
+- [X] Gestión de usuarios normales desde panel admin (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [ ] Health check y rate limit en login
 - [ ] Informe de cumplimiento
@@ -94,7 +94,7 @@ app/
 │   ├── security.py      ← Argon2id, firma/verificación JWT
 │   ├── exceptions.py    ← Errores HTTP controlados (RF-8)
 │   ├── scheduler.py     ← APScheduler: limpieza de retención (ADR-9)
-│   └── rate_limit.py    ← Bloqueo por IP en login (RF-16)
+│   └── rate_limit.py    ← Rate limiting con SlowAPI (RF-16)
 ├── db/
 │   ├── database.py      ← Engine, SessionLocal, Base, get_db
 │   └── models/

@@ -11,7 +11,7 @@ from app.core.enums import UserRole
 
 
 def test_create_access_token_given_valid_subject_then_returns_decodable_jwt():
-    token = security.create_access_token("testuser", UserRole.USER)
+    token = security.create_access_token(42, UserRole.USER)
 
     payload = jwt.decode(
         token,
@@ -20,13 +20,13 @@ def test_create_access_token_given_valid_subject_then_returns_decodable_jwt():
         options={"verify_exp": False},
     )
 
-    assert payload["sub"] == "testuser"
+    assert payload["sub"] == "42"
     assert payload["role"] == "user"
 
 
 def test_create_access_token_given_custom_expiry_then_has_correct_exp_claim():
     token = security.create_access_token(
-        "testuser", UserRole.USER, expires_delta=timedelta(minutes=5)
+        42, UserRole.USER, expires_delta=timedelta(minutes=5)
     )
 
     payload = jwt.decode(
@@ -41,7 +41,7 @@ def test_create_access_token_given_custom_expiry_then_has_correct_exp_claim():
 
 
 def test_create_access_token_given_no_expiry_then_uses_default_60_minutes():
-    token = security.create_access_token("testuser", UserRole.USER)
+    token = security.create_access_token(42, UserRole.USER)
 
     payload = jwt.decode(
         token,

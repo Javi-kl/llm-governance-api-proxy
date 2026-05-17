@@ -222,13 +222,13 @@ Cliente
 
 ---
 
-### ADR-11: SlowAPI para rate limiting general + lógica propia en login
+### ADR-11: SlowAPI para rate limiting general
 
-**Qué:** SlowAPI con backend `memory://` como rate limiter general en los endpoints del proxy. El throttle de login (RF-16: 5 fallos → 15 min bloqueo, reset en acierto) se implementa con lógica propia sobre PostgreSQL porque ninguna librería genérica soporta el patrón "reset on success".
+**Qué:** SlowAPI con backend `memory://` como rate limiter general en los endpoints del proxy. Se aplican decoradores `@limiter.limit` en endpoints sensibles (login, change_password). No se implementa throttling por fallos consecutivos en el MVP.
 
-**Por qué:** Son dos problemas distintos. SlowAPI resuelve el rate limiting clásico con decoradores y sin código manual. El throttling de login necesita resetear el contador en acierto — eso solo lo da la lógica propia. Usar PostgreSQL evita añadir Redis solo para esto.
+**Por qué:** Rate limiting clásico (límite de requests por ventana de tiempo) es un problema resuelto. SlowAPI lo cubre con decoradores y sin código manual. El throttling por fallos consecutivos (5 fallos → bloqueo 15 min, reset en acierto) es complejo, requiere estado persistente, y no aporta valor diferenciador al core del proxy.
 
-**Trade-off:** SlowAPI en memoria no comparte estado entre workers, aceptable en MVP single-worker. Si se escala o Redis entra al stack, se cambia `memory://` por `redis://` sin tocar los decoradores, y el throttle de login se migra a un Lua script atómico. La interfaz de `rate_limit.py` no cambia.
+**Trade-off:** SlowAPI en memoria no comparte estado entre workers, aceptable en MVP single-worker. Si se escala o Redis entra al stack, se cambia `memory://` por `redis://` sin tocar los decoradores.
 
 ---
 

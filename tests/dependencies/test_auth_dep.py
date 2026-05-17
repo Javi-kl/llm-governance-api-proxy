@@ -16,7 +16,7 @@ from app.dependencies.auth_dep import auth_dep, require_admin
 def test_given_valid_token_then_returns_user(
     db_session: Session, admin_user: User
 ):
-    token = security.create_access_token("admin", UserRole.ADMIN)
+    token = security.create_access_token(admin_user.id, UserRole.ADMIN)
     request = MagicMock(spec=Request)
     request.cookies = {"access_token": token}
 
@@ -40,7 +40,7 @@ def test_given_expired_token_then_raises_invalid_credentials(
     from datetime import timedelta
 
     token = security.create_access_token(
-        "admin", UserRole.ADMIN, expires_delta=timedelta(seconds=-1)
+        admin_user.id, UserRole.ADMIN, expires_delta=timedelta(seconds=-1)
     )
     request = MagicMock(spec=Request)
     request.cookies = {"access_token": token}
@@ -55,7 +55,7 @@ def test_given_expired_token_then_raises_invalid_credentials(
 def test_given_admin_user_then_returns_user(
     db_session: Session, admin_user: User
 ):
-    token = security.create_access_token("admin", UserRole.ADMIN)
+    token = security.create_access_token(admin_user.id, UserRole.ADMIN)
     request = MagicMock(spec=Request)
     request.cookies = {"access_token": token}
 
@@ -67,7 +67,7 @@ def test_given_admin_user_then_returns_user(
 def test_given_regular_user_then_raises_permission_denied(
     db_session: Session, regular_user: User
 ):
-    token = security.create_access_token("testuser", UserRole.USER)
+    token = security.create_access_token(regular_user.id, UserRole.USER)
     request = MagicMock(spec=Request)
     request.cookies = {"access_token": token}
 

@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.user import ChangePasswordRequest, UserCreate
+from app.schemas.auth import ChangePasswordRequest
+from app.schemas.user import UserCreate
 
 
 def test_given_valid_pin_then_creates_user():

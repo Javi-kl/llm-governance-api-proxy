@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core import security
 from app.core.enums import UserRole
+from app.core.rate_limit import limiter
 from app.db.database import Base, get_db
 from app.db.models.user import User
 from app.main import app
@@ -24,6 +25,14 @@ test_engine = create_engine(
     poolclass=StaticPool,
 )
 TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter() -> Generator[None, None, None]:
+    """Limpia el storage en memoria de SlowAPI antes de cada test."""
+    if limiter._storage is not None and hasattr(limiter._storage, "storage"):
+        limiter._storage.storage.clear()
+    yield
 
 
 @pytest.fixture
@@ -82,6 +91,6 @@ def regular_user(db_session) -> User:
 
 
 def create_token(
-    subject: str, role: UserRole, expires_delta: timedelta | None = None
+    subject: int, role: UserRole, expires_delta: timedelta | None = None
 ) -> str:
     return security.create_access_token(subject, role, expires_delta)

@@ -149,7 +149,7 @@ Estas reglas son críticas y están documentadas en detalle en `docs/requirement
 | **Bootstrap admin por env var** | El primer admin se crea al arrancar via `BOOTSTRAP_ADMIN_PASSWORD`. NO existe endpoint de registro público | RF-13 |
 | **Retención 90 días** | Los logs de auditoría se eliminan automáticamente a los 90 días (APScheduler) | RAL-2, ADR-9 |
 | **Política de prioridad** | Si un prompt dispara varias categorías: `block > mask > allow` | RF-3 |
-| **Rate limit en login** | Tras 5 fallos consecutivos, la IP se bloquea 15 min. Un login exitoso resetea el contador | RF-16 |
+| **Rate limiting** | SlowAPI: 100 req/min global, 5 req/5min en login | RF-16 |
 | **Secrets por env vars** | Ningún secreto en código fuente. Todo por variables de entorno | RNF-9 |
 
 ---
