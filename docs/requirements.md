@@ -116,18 +116,19 @@ Criterios de aceptación:
 ---
 **RF-15. Autenticación con PIN (user) y contraseña (admin)**
 - Historia: Como sistema, quiero autenticar a los usuarios normales mediante PIN numérico y a los administradores mediante contraseña robusta, adaptando el mecanismo al perfil de riesgo de cada rol.
-> El login es el mismo endpoint (POST /api/v1/auth/login). El sistema distingue el rol buscando primero en usuarios y luego en admins, o mediante un campo role en la petición. Si las credenciales no coinciden con ningún rol, devuelve error genérico.
+> Un único endpoint (POST /api/v1/auth/login) que recibe `username` + `credential`. El sistema **NO** pide el rol al cliente — el rol se determina por el usuario encontrado en la base de datos. Tanto users como admins comparten la misma tabla (`users`) diferenciados por el campo `role`. El frontend presenta pantallas separadas (ver RF-18) pero el backend es agnóstico al origen del login.
 Criterios de aceptación:
-- DADO QUE envío credenciales con role: "user" y un PIN de 5-6 dígitos, CUANDO hago login, ENTONCES el sistema solo valida contra usuarios, no contra admins.
-- DADO QUE envío credenciales sin el campo role, CUANDO hago login, ENTONCES el sistema devuelve error 422 indicando que el campo es obligatorio.
+- DADO QUE envío `username` y `credential` correctos, CUANDO hago login, ENTONCES el sistema devuelve un JWT en cookie HttpOnly con el rol correspondiente al usuario encontrado.
+- DADO QUE envío credenciales incorrectas, CUANDO hago login, ENTONCES el sistema devuelve 401 con mensaje genérico "credenciales inválidas" — sin revelar si el usuario existe.
+- DADO QUE envío un `username` que no existe, CUANDO hago login, ENTONCES el sistema devuelve 401 con el mismo mensaje genérico.
+- DADO QUE un usuario inactivo intenta hacer login, CUANDO el sistema verifica el estado, ENTONCES devuelve 401 con mensaje genérico.
+- DADO QUE envío el body sin el campo `username`, CUANDO hago login, ENTONCES el sistema devuelve 422 indicando que username es obligatorio.
+- DADO QUE envío el body sin el campo `credential`, CUANDO hago login, ENTONCES el sistema devuelve 422 indicando que credential es obligatorio.
 - DADO QUE un usuario normal envía su username y PIN correcto (5-6 dígitos), CUANDO hace login, ENTONCES el sistema crea una sesión y devuelve cookie con rol user.
 - DADO QUE un administrador envía su username y contraseña correcta, CUANDO hace login, ENTONCES el sistema crea una sesión y devuelve cookie con rol admin.
 - DADO QUE un usuario envía un PIN incorrecto, CUANDO hace login, ENTONCES el sistema devuelve error 401 con mensaje genérico "credenciales inválidas" — sin revelar si el usuario existe o no.
 - DADO QUE un administrador envía una contraseña incorrecta, CUANDO hace login, ENTONCES el sistema devuelve error 401 con el mismo mensaje genérico que para usuario.
-- DADO QUE el PIN enviado tiene menos de 4 o más de 6 dígitos, CUANDO se valida, ENTONCES el sistema devuelve error 422 indicando el formato esperado.
 - DADO QUE la contraseña tiene menos de la longitud mínima configurada, CUANDO se establece (creación o reseteo), ENTONCES el sistema rechaza con error de validación.
-- DADO QUE envío credenciales sin el campo username, CUANDO hago login, ENTONCES el sistema devuelve error 422 indicando que username es obligatorio.
-- DADO QUE envío credenciales sin el campo role, CUANDO hago login, ENTONCES el sistema devuelve error 422 indicando que role es obligatorio.
 ---
 **RF-6. Consulta del historial de auditoría**
 - Historia: Como usuario administrador, quiero consultar un historial de solicitudes con filtros básicos para revisar decisiones, incidencias y uso del sistema.
@@ -172,14 +173,14 @@ Criterios de aceptación:
 - DADO QUE el proxy está arrancando y la base de datos aún no está lista, CUANDO se llama a GET /api/v1/health, ENTONCES devuelve 503 indicando qué dependencia falla.
 - DADO QUE se llama al health check sin credenciales, CUANDO el sistema recibe la petición, ENTONCES responde normalmente sin exigir autenticación.
 ---
-**RF-16. Rate limit en login**
-- Historia: Como sistema, quiero limitar la tasa de intentos de inicio de sesión y bloquear temporalmente tras varios fallos consecutivos para dificultar ataques de fuerza bruta.
-> Se aplica por IP. Tras 5 fallos consecutivos, la IP se bloquea durante 15 minutos. Un login exitoso resetea el contador de esa IP.
+**RF-16. Rate limiting básico**
+- Historia: Como sistema, quiero limitar la tasa de peticiones por IP para evitar abuso y proteger los endpoints sensibles.
+> Se implementa con SlowAPI. Límite global por defecto: 100 peticiones/minuto por IP.
+> El endpoint de login tiene límite más restrictivo: 5 peticiones cada 5 minutos por IP.
+> No se implementa throttling por fallos consecutivos ni bloqueo temporal en el MVP.
 Criterios de aceptación:
-- DADO QUE una IP falla 5 intentos de login consecutivos, CUANDO intenta un sexto login, ENTONCES el sistema devuelve 429 con mensaje "Demasiados intentos. Inténtalo de nuevo en X minutos", sin procesar las credenciales.
-- DADO QUE una IP falla 3 intentos y luego acierta, CUANDO hace login correctamente, ENTONCES el contador de fallos de esa IP se resetea a cero.
-- DADO QUE una IP está bloqueada y pasan los 15 minutos, CUANDO intenta hacer login de nuevo, ENTONCES el sistema procesa las credenciales normalmente.
-- DADO QUE una IP está bloqueada y otra IP distinta intenta hacer login, CUANDO envía credenciales, ENTONCES el sistema procesa la solicitud normalmente — el bloqueo es por IP, no global.
+- DADO QUE una IP hace más de 100 peticiones/minuto a cualquier endpoint, CUANDO supera el límite, ENTONCES el sistema devuelve 429.
+- DADO QUE una IP hace más de 5 peticiones en 5 minutos al endpoint de login, CUANDO supera el límite, ENTONCES el sistema devuelve 429.
 ---
 **RF-17. Gestión de usuarios desde panel admin**
 - Historia: Como usuario administrador, quiero crear, desactivar y resetear el PIN de usuarios normales desde el panel de administración para gestionar el acceso sin intervención técnica.
@@ -197,12 +198,12 @@ Criterios de aceptación:
 ---
 **RF-18. Pantallas de login separadas**
 - Historia: Como sistema, quiero ofrecer pantallas de inicio de sesión separadas para usuarios normales y administradores para evitar confusión y reforzar la separación de roles.
-> Dos formularios en páginas distintas. /login/user pide PIN, /login/admin pide contraseña. Tras login exitoso, cada uno redirige a su vista correspondiente. El backend solo recibe credenciales + role, no sabe de pantallas separadas.
+> Dos formularios en páginas distintas. `/login/user` pide PIN, `/login/admin` pide contraseña. Tras login exitoso, cada uno redirige a su vista correspondiente. El backend es agnóstico a la pantalla de origen — solo recibe `username` + `credential` y determina el rol por el usuario encontrado.
 Criterios de aceptación:
-- DADO QUE un usuario normal accede a /login/user, CUANDO introduce su PIN y pulsa entrar, ENTONCES la petición al backend incluye role: "user" y, si es correcto, redirige al chat.
-- DADO QUE un administrador accede a /login/admin, CUANDO introduce su contraseña y pulsa entrar, ENTONCES la petición al backend incluye role: "admin" y, si es correcto, redirige al panel admin.
-- DADO QUE un usuario normal intenta iniciar sesión desde /login/admin con su PIN, CUANDO envía el formulario, ENTONCES el backend rechaza porque role: "admin" no coincide — sin revelar por qué.
-- DADO QUE un administrador intenta iniciar sesión desde /login/user con su contraseña, CUANDO envía el formulario, ENTONCES el backend rechaza porque role: "user" no coincide — sin revelar por qué.
+- DADO QUE un usuario normal accede a `/login/user`, CUANDO introduce su PIN y pulsa entrar, ENTONCES la petición al backend envía `username` + `credential` y, si es correcto, redirige al chat.
+- DADO QUE un administrador accede a `/login/admin`, CUANDO introduce su contraseña y pulsa entrar, ENTONCES la petición al backend envía `username` + `credential` y, si es correcto, redirige al panel admin.
+- DADO QUE un usuario normal intenta iniciar sesión desde `/login/admin` con su PIN, CUANDO envía el formulario, ENTONCES el backend rechaza porque el PIN no coincide con ninguna credencial de admin — sin revelar por qué.
+- DADO QUE un administrador intenta iniciar sesión desde `/login/user` con su contraseña, CUANDO envía el formulario, ENTONCES el backend rechaza porque la contraseña no coincide con ninguna credencial de user — sin revelar por qué.
 - DADO QUE un usuario autenticado con sesión activa intenta acceder a una pantalla de login, CUANDO la página carga, ENTONCES redirige automáticamente a su vista correspondiente (chat o admin) sin mostrar el formulario.
 ---
 **RF-19. Informe de cumplimiento (Should)**

@@ -94,7 +94,7 @@ app/
 │   ├── security.py      ← Argon2id, firma/verificación JWT
 │   ├── exceptions.py    ← Errores HTTP controlados (RF-8)
 │   ├── scheduler.py     ← APScheduler: limpieza de retención (ADR-9)
-│   └── rate_limit.py    ← Bloqueo por IP en login (RF-16)
+│   └── rate_limit.py    ← Rate limiting con SlowAPI (RF-16)
 ├── db/
 │   ├── database.py      ← Engine, SessionLocal, Base, get_db
 │   └── models/

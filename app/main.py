@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core import config
 from app.core.bootstrap import bootstrap_admin
 from app.core.handlers import register_exception_handlers
+from app.core.rate_limit import setup_rate_limiting
 from app.db.database import get_db_context
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 register_exception_handlers(app)
+setup_rate_limiting(app)
 
 app.add_middleware(
     CORSMiddleware,

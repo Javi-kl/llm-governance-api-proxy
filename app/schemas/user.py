@@ -15,6 +15,13 @@ class UserCreate(BaseModel):
     def validate_pin(cls, pin: str) -> str:
         return security.validate_pin(pin)
 
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, username: str) -> str:
+        if not 3 < len(username) < 20:
+            raise ValueError("Username debe tener entre 3 y 20 caracteres")
+        return username
+
 
 class UserResponse(BaseModel):
     id: int
@@ -29,5 +36,3 @@ class UserResponse(BaseModel):
 class UserListResponse(BaseModel):
     items: list[UserResponse]
     total: int
-
-

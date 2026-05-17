@@ -1,15 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import PasswordReuseError
+from app.core.rate_limit import limiter
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies.auth_dep import require_admin
-from app.schemas.auth import LoginRequest
+from app.dependencies.auth_dep import auth_dep, require_admin
+from app.schemas.auth import ChangePasswordRequest, LoginRequest
 from app.schemas.common import MessageResponse
-from app.schemas.auth import ChangePasswordRequest
 from app.services import auth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -20,7 +20,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     response_model=MessageResponse,
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("5/5minute")
 def login(
+    request: Request,
     login_data: LoginRequest,
     response: Response,
     db: Annotated[Session, Depends(get_db)],
@@ -34,7 +36,9 @@ def login(
     response_model=MessageResponse,
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("1/minute")
 def change_password(
+    request: Request,
     password_data: ChangePasswordRequest,
     user: Annotated[User, Depends(require_admin)],
     db: Annotated[Session, Depends(get_db)],
@@ -54,6 +58,6 @@ def change_password(
 )
 def logout(
     response: Response,
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(auth_dep)],
 ) -> MessageResponse:
     return auth.logout(response, current_user)
