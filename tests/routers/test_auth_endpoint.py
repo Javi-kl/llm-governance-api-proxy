@@ -40,7 +40,9 @@ def test_given_nonexistent_user_then_returns_401(client: TestClient):
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Credenciales no válidas"
+    body = response.json()
+    assert body["error"]["code"] == "UNAUTHORIZED"
+    assert body["error"]["message"] == "Credenciales no válidas"
 
 
 def test_given_wrong_credential_then_returns_401(
@@ -52,7 +54,9 @@ def test_given_wrong_credential_then_returns_401(
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Credenciales no válidas"
+    body = response.json()
+    assert body["error"]["code"] == "UNAUTHORIZED"
+    assert body["error"]["message"] == "Credenciales no válidas"
 
 
 def test_given_inactive_user_then_returns_401(
@@ -67,7 +71,9 @@ def test_given_inactive_user_then_returns_401(
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Credenciales no válidas"
+    body = response.json()
+    assert body["error"]["code"] == "UNAUTHORIZED"
+    assert body["error"]["message"] == "Credenciales no válidas"
 
 
 def test_given_missing_credential_field_then_returns_422(
@@ -79,6 +85,12 @@ def test_given_missing_credential_field_then_returns_422(
     )
 
     assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "VALIDATION_ERROR"
+    assert body["error"]["message"] == "La solicitud contiene datos inválidos"
+    assert "details" in body["error"]
+    fields = [d["field"] for d in body["error"]["details"]]
+    assert "credential" in fields
 
 
 def test_given_login_cookie_then_works_with_auth_dep(

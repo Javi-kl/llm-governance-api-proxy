@@ -51,6 +51,8 @@ def test_given_regular_user_token_then_returns_403(
     response = client.get("/api/v1/admin/users")
 
     assert response.status_code == 403
+    body = response.json()
+    assert body["error"]["code"] == "FORBIDDEN"
 
 
 def test_given_no_auth_then_returns_401(client: TestClient):
@@ -87,7 +89,9 @@ def test_given_nonexistent_user_then_returns_404(client: TestClient, admin_user:
     response = client.patch("/api/v1/admin/users/9999/deactivate")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Usuario no encontrado"
+    body = response.json()
+    assert body["error"]["code"] == "USER_NOT_FOUND"
+    assert body["error"]["message"] == "Usuario no encontrado"
 
 
 def test_given_admin_target_then_returns_422(client: TestClient, admin_user: User):
@@ -100,6 +104,8 @@ def test_given_admin_target_then_returns_422(client: TestClient, admin_user: Use
     response = client.patch(f"/api/v1/admin/users/{admin_user.id}/deactivate")
 
     assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "ADMIN_NOT_MANAGEABLE"
 
 
 def test_given_inactive_user_then_returns_422_on_deactivate(
@@ -117,6 +123,8 @@ def test_given_inactive_user_then_returns_422_on_deactivate(
     response = client.patch(f"/api/v1/admin/users/{regular_user.id}/deactivate")
 
     assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "USER_INACTIVE"
 
 
 def test_given_regular_user_then_returns_403_on_deactivate(
@@ -172,7 +180,9 @@ def test_given_nonexistent_user_then_returns_404_on_pin_reset(
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Usuario no encontrado"
+    body = response.json()
+    assert body["error"]["code"] == "USER_NOT_FOUND"
+    assert body["error"]["message"] == "Usuario no encontrado"
 
 
 def test_given_admin_target_then_returns_422_on_pin_reset(
@@ -213,3 +223,23 @@ def test_given_no_auth_then_returns_401_on_pin_reset(client: TestClient):
     )
 
     assert response.status_code == 401
+
+
+def test_given_duplicate_username_then_returns_409(
+    client: TestClient, admin_user: User, regular_user: User
+):
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "credential": "admin12345"},
+    )
+    client.cookies = login_response.cookies
+
+    response = client.post(
+        "/api/v1/admin/users/register",
+        json={"username": "testuser", "pin": "12345"},
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "USER_ALREADY_EXISTS"
+    assert body["error"]["message"] == "Este username ya está registrado"
