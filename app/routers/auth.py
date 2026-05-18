@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import PasswordReuseError
+from app.core import config
+
 from app.core.rate_limit import limiter
 from app.db.database import get_db
 from app.db.models.user import User
@@ -28,7 +29,19 @@ def login(
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
     """Login unificado para usuarios normales y administradores."""
-    return auth.login(login_data, db, response)
+
+    token = auth.login(login_data, db)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=config.get_settings().COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+    return MessageResponse(message="login correcto")
 
 
 @router.patch(
@@ -43,12 +56,8 @@ def change_password(
     user: Annotated[User, Depends(require_admin)],
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
-    try:
-        return auth.change_password(user, password_data, db)
-    except PasswordReuseError:
-        raise HTTPException(
-            status_code=400, detail="La nueva contraseña no puede ser igual a la actual"
-        )
+    auth.change_password(user, password_data, db)
+    return MessageResponse(message="Contraseña actualizada correctamente")
 
 
 @router.post(
@@ -59,5 +68,11 @@ def change_password(
 def logout(
     response: Response,
     current_user: Annotated[User, Depends(auth_dep)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
-    return auth.logout(response, current_user)
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )
+    auth.logout(current_user, db)
+    return MessageResponse(message="sesión cerrada")

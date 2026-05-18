@@ -1,7 +1,8 @@
+from http.cookies import SimpleCookie
+
 from fastapi.testclient import TestClient
 
 from app.db.models.user import User
-
 
 # ── POST /api/v1/auth/login ───────────────────────────────
 
@@ -97,3 +98,33 @@ def test_given_login_cookie_then_works_with_auth_dep(
 
     # 403 = autenticado pero sin permisos (no 401 = no autenticado)
     assert response.status_code == 403
+
+
+def test_given_login_then_cookie_has_security_attributes(
+    client: TestClient, regular_user: User
+):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    assert response.status_code == 200
+    set_cookie_header = response.headers.get("set-cookie", "")
+    cookie = SimpleCookie()
+    cookie.load(set_cookie_header)
+    assert "access_token" in cookie
+    assert "httponly" in cookie["access_token"]  # flag presente = True
+    assert cookie["access_token"]["samesite"] == "lax"
+    assert cookie["access_token"]["path"] == "/"
+
+
+# ------ Logout --------------------------
+def test_given_authenticated_user_then_logout_deletes_cookie(
+    client: TestClient, regular_user: User
+):
+    client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    response = client.post("/api/v1/auth/logout")
+    assert response.status_code == 200
+    assert "Max-Age=0" in response.headers.get("set-cookie", "")

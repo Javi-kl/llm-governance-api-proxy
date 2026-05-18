@@ -1,7 +1,15 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions import CannotModifyAdminError, InactiveUserError, InvalidCredentialsError, PermissionDeniedError, UserNotFoundError
+from app.core.exceptions import (
+    CannotModifyAdminError,
+    InactiveUserError,
+    InvalidCredentialsError,
+    PasswordReuseError,
+    PermissionDeniedError,
+    UserAlreadyExistsError,
+    UserNotFoundError,
+)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -38,4 +46,18 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=422,
             content={"detail": "El usuario esta desactivado."},
+        )
+
+    @app.exception_handler(PasswordReuseError)
+    async def password_reuse_handler(request: Request, exc: PasswordReuseError):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "La nueva contraseña no puede ser igual a la actual"},
+        )
+
+    @app.exception_handler(UserAlreadyExistsError)
+    async def user_already_exists_handler(request: Request, exc: UserAlreadyExistsError):
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Este username ya está registrado"},
         )

@@ -1,9 +1,8 @@
 from datetime import timedelta
 from typing import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from fastapi import Request, Response
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -56,20 +55,6 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         with TestClient(app) as test_client:
             yield test_client
     app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_response() -> MagicMock:
-    """Mock de Response de FastAPI. Simula set_cookie() y delete_cookie()."""
-    return MagicMock(spec=Response)
-
-
-@pytest.fixture
-def mock_request() -> MagicMock:
-    """Mock de Request con .cookies como dict configurable."""
-    req = MagicMock(spec=Request)
-    req.cookies = {}
-    return req
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ from app.core import enums, exceptions, security
 from app.db.models.user import User
 from app.repositories import users
 from app.schemas.auth import UserPinResetRequest
-from app.schemas.common import MessageResponse
+
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -31,19 +31,16 @@ def list_users(db: Session, offset: int = 0, limit: int = 50) -> UserListRespons
     )
 
 
-def deactivate_user(user_id: int, db: Session) -> MessageResponse:
+def deactivate_user(user_id: int, db: Session) -> None:
     user = _get_normal_active_user_or_raise(user_id, db)
     users.deactivate_user(user, db)
-    return MessageResponse(message="Usuario desactivado.")
 
 
 def reset_user_pin(
     user_id: int, user_pin: UserPinResetRequest, db: Session
-) -> MessageResponse:
-
+) -> None:
     user = _get_normal_active_user_or_raise(user_id, db)
     users.reset_user_pin(user, security.hash_credential(user_pin.pin), db)
-    return MessageResponse(message="PIN de usuario modificado.")
 
 
 def _get_normal_active_user_or_raise(user_id: int, db: Session) -> User:

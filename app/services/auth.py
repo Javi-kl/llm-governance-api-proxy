@@ -1,18 +1,17 @@
 import logging
 
-from fastapi import Response
 from sqlalchemy.orm import Session
 
-from app.core import config, exceptions, security
+from app.core import exceptions, security
 from app.db.models.user import User
 from app.repositories import users
 from app.schemas.auth import ChangePasswordRequest, LoginRequest
-from app.schemas.common import MessageResponse
+
 
 logger = logging.getLogger("auth_service")
 
 
-def login(login_data: LoginRequest, db: Session, response: Response) -> MessageResponse:
+def login(login_data: LoginRequest, db: Session) -> str:
     user = users.get_by_username(login_data.username, db)
 
     if not user:
@@ -29,25 +28,15 @@ def login(login_data: LoginRequest, db: Session, response: Response) -> MessageR
 
     token = security.create_access_token(subject=user.id, role=user.role)
 
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        max_age=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=config.get_settings().COOKIE_SECURE,
-        samesite="lax",
-        path="/",
-    )
-
     logger.info("Login exitoso para: %s", user.username)
-    return MessageResponse(message="login correcto")
+    return token
 
 
 def change_password(
     user: User,
     password_data: ChangePasswordRequest,
     db: Session,
-) -> MessageResponse:
+) -> None:
     if not security.verify_password(
         password_data.current_password, user.credential_hash
     ):
@@ -64,14 +53,9 @@ def change_password(
         user, security.hash_credential(password_data.new_password), db
     )
     logger.info("Cambio de contraseña exitoso para: %s", user.username)
-    return MessageResponse(message="Contraseña actualizada correctamente")
 
 
-def logout(response: Response, current_user: User) -> MessageResponse:
-    response.delete_cookie(
-        key="access_token",
-        path="/",
-    )
-
+def logout(current_user: User, db: Session) -> None:
+    # TODO Ahora: solo log. Después: revoke refresh tokens.
     logger.info("Logout exitoso para: %s", current_user.username)
-    return MessageResponse(message="sesión cerrada")
+    

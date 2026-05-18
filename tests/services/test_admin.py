@@ -38,9 +38,8 @@ def test_given_duplicate_username_then_raises_user_already_exists(
 
 
 def test_given_active_user_then_deactivates(db_session: Session, regular_user: User):
-    result = admin.deactivate_user(regular_user.id, db_session)
+    admin.deactivate_user(regular_user.id, db_session)
 
-    assert result.message == "Usuario desactivado."
     db_session.refresh(regular_user)
     assert regular_user.active is False
 
@@ -64,9 +63,8 @@ def test_given_valid_pin_then_resets(db_session: Session, regular_user: User):
     old_hash = regular_user.credential_hash
     pin_data = UserPinResetRequest(pin="99999")
 
-    result = admin.reset_user_pin(regular_user.id, pin_data, db_session)
+    admin.reset_user_pin(regular_user.id, pin_data, db_session)
 
-    assert result.message == "PIN de usuario modificado."
     db_session.refresh(regular_user)
     assert regular_user.credential_hash != old_hash
 
