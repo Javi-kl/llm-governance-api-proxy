@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core import enums, exceptions, security
 from app.db.models.user import User
 from app.repositories import users
+from app.repositories import refresh_tokens as refresh_repo
 from app.schemas.auth import UserPinResetRequest
 
 from app.schemas.user import (
@@ -34,6 +35,7 @@ def list_users(db: Session, offset: int = 0, limit: int = 50) -> UserListRespons
 def deactivate_user(user_id: int, db: Session) -> None:
     user = _get_normal_active_user_or_raise(user_id, db)
     users.deactivate_user(user, db)
+    refresh_repo.revoke_all_for_user(user_id, db)
 
 
 def reset_user_pin(
@@ -41,6 +43,7 @@ def reset_user_pin(
 ) -> None:
     user = _get_normal_active_user_or_raise(user_id, db)
     users.reset_user_pin(user, security.hash_credential(user_pin.pin), db)
+    refresh_repo.revoke_all_for_user(user_id, db)
 
 
 def _get_normal_active_user_or_raise(user_id: int, db: Session) -> User:

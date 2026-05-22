@@ -1,4 +1,6 @@
+import hashlib
 import re
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -57,3 +59,13 @@ def validate_pin(pin: str) -> str:
     if not re.match(r"^\d{5,6}$", pin):
         raise ValueError("El PIN debe contener entre 5 y 6 dígitos")
     return pin
+
+
+def create_refresh_token() -> str:
+    """Genera un token aleatorio criptográficamente seguro (128 caracteres hex)."""
+    return secrets.token_hex(64)
+
+
+def hash_token(token: str) -> str:
+    """Hashea un token con SHA-256 para almacenar en BD."""
+    return hashlib.sha256(token.encode()).hexdigest()

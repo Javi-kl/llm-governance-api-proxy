@@ -120,13 +120,16 @@ def test_given_login_then_cookie_has_security_attributes(
         json={"username": "testuser", "credential": "123456"},
     )
     assert response.status_code == 200
-    set_cookie_header = response.headers.get("set-cookie", "")
-    cookie = SimpleCookie()
-    cookie.load(set_cookie_header)
-    assert "access_token" in cookie
-    assert "httponly" in cookie["access_token"]  # flag presente = True
-    assert cookie["access_token"]["samesite"] == "lax"
-    assert cookie["access_token"]["path"] == "/"
+    set_cookies = response.headers.get_list("set-cookie")
+    assert len(set_cookies) == 2
+    
+    # Parsear el de access_token
+    access_cookie = SimpleCookie()
+    access_cookie.load(set_cookies[0])
+    assert "access_token" in access_cookie
+    assert "httponly" in access_cookie["access_token"]  # flag presente = True
+    assert access_cookie["access_token"]["samesite"] == "lax"
+    assert access_cookie["access_token"]["path"] == "/"
 
 
 # ------ Logout --------------------------
@@ -139,4 +142,7 @@ def test_given_authenticated_user_then_logout_deletes_cookie(
     )
     response = client.post("/api/v1/auth/logout")
     assert response.status_code == 200
-    assert "Max-Age=0" in response.headers.get("set-cookie", "")
+    
+    set_cookies = response.headers.get_list("set-cookie")
+    assert any("Max-Age=0" in c and "access_token" in c for c in set_cookies)
+    assert any("Max-Age=0" in c and "refresh_token" in c for c in set_cookies)
