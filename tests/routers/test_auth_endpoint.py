@@ -1,7 +1,8 @@
+from http.cookies import SimpleCookie
+
 from fastapi.testclient import TestClient
 
 from app.db.models.user import User
-
 
 # ── POST /api/v1/auth/login ───────────────────────────────
 
@@ -39,7 +40,9 @@ def test_given_nonexistent_user_then_returns_401(client: TestClient):
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Credenciales no válidas"
+    body = response.json()
+    assert body["error"]["code"] == "UNAUTHORIZED"
+    assert body["error"]["message"] == "Credenciales no válidas"
 
 
 def test_given_wrong_credential_then_returns_401(
@@ -51,7 +54,9 @@ def test_given_wrong_credential_then_returns_401(
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Credenciales no válidas"
+    body = response.json()
+    assert body["error"]["code"] == "UNAUTHORIZED"
+    assert body["error"]["message"] == "Credenciales no válidas"
 
 
 def test_given_inactive_user_then_returns_401(
@@ -66,7 +71,9 @@ def test_given_inactive_user_then_returns_401(
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Credenciales no válidas"
+    body = response.json()
+    assert body["error"]["code"] == "UNAUTHORIZED"
+    assert body["error"]["message"] == "Credenciales no válidas"
 
 
 def test_given_missing_credential_field_then_returns_422(
@@ -78,6 +85,12 @@ def test_given_missing_credential_field_then_returns_422(
     )
 
     assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "VALIDATION_ERROR"
+    assert body["error"]["message"] == "La solicitud contiene datos inválidos"
+    assert "details" in body["error"]
+    fields = [d["field"] for d in body["error"]["details"]]
+    assert "credential" in fields
 
 
 def test_given_login_cookie_then_works_with_auth_dep(
@@ -97,3 +110,61 @@ def test_given_login_cookie_then_works_with_auth_dep(
 
     # 403 = autenticado pero sin permisos (no 401 = no autenticado)
     assert response.status_code == 403
+
+
+def test_given_login_then_cookie_has_security_attributes(
+    client: TestClient, regular_user: User
+):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    assert response.status_code == 200
+    set_cookies = response.headers.get_list("set-cookie")
+    assert len(set_cookies) == 2
+    
+    # Parsear el de access_token
+    access_cookie = SimpleCookie()
+    access_cookie.load(set_cookies[0])
+    assert "access_token" in access_cookie
+    assert "httponly" in access_cookie["access_token"]  # flag presente = True
+    assert access_cookie["access_token"]["samesite"] == "lax"
+    assert access_cookie["access_token"]["path"] == "/"
+
+
+# ------ Logout --------------------------
+def test_given_authenticated_user_then_logout_deletes_cookie(
+    client: TestClient, regular_user: User
+):
+    client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    response = client.post("/api/v1/auth/logout")
+    assert response.status_code == 200
+    
+    set_cookies = response.headers.get_list("set-cookie")
+    assert any("Max-Age=0" in c and "access_token" in c for c in set_cookies)
+    assert any("Max-Age=0" in c and "refresh_token" in c for c in set_cookies)
+
+
+# ------ Refresh --------------------------
+def test_given_valid_refresh_cookie_then_returns_200_and_new_tokens(
+    client: TestClient, regular_user: User
+):
+    # Hacer login para obtener las cookies
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    assert login_response.status_code == 200
+    original_refresh = login_response.cookies.get("refresh_token")
+
+    # Llamar al endpoint de refresh
+    refresh_response = client.post("/api/v1/auth/refresh")
+
+    assert refresh_response.status_code == 200
+    assert refresh_response.json()["message"] == "Tokens renovados correctamente"
+    assert "access_token" in refresh_response.cookies
+    assert "refresh_token" in refresh_response.cookies
+    assert refresh_response.cookies["refresh_token"] != original_refresh

@@ -3,7 +3,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core import exceptions
 from app.db.database import get_db
 from app.db.models.user import User
 from app.dependencies.auth_dep import require_admin
@@ -29,13 +28,7 @@ def register(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(require_admin)],
 ):
-    try:
-        return admin.register(user_data, db)
-    except exceptions.UserAlreadyExistsError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Este username ya está registrado.",
-        )
+    return admin.register(user_data, db)
 
 
 @router.get(
@@ -63,7 +56,8 @@ def deactivate_user(
     _: Annotated[User, Depends(require_admin)],
 ):
 
-    return admin.deactivate_user(user_id, db)
+    admin.deactivate_user(user_id, db)
+    return MessageResponse(message="Usuario desactivado.")
 
 
 @router.patch(
@@ -78,4 +72,5 @@ def reset_user_pin(
     _: Annotated[User, Depends(require_admin)],
 ):
 
-    return admin.reset_user_pin(user_id, user_pin, db)
+    admin.reset_user_pin(user_id, user_pin, db)
+    return MessageResponse(message="PIN de usuario modificado.")

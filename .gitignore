@@ -21,7 +21,7 @@ venv/
 ENV/
 env/
 .conda/
-
+.envrc
 # Python
 __pycache__/
 *.py[cod]
