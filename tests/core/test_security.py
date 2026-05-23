@@ -103,3 +103,25 @@ def test_validate_pin_given_invalid_format_then_raises_value_error(invalid_pin):
 
     with pytest.raises(ValueError, match="entre 5 y 6 dígitos"):
         security.validate_pin(invalid_pin)
+
+
+# ── create_refresh_token ─────────────────────────────────
+
+
+def test_create_refresh_token_returns_128_hex_chars():
+    token = security.create_refresh_token()
+
+    assert len(token) == 128
+    assert all(c in "0123456789abcdef" for c in token)
+
+
+# ── hash_token ───────────────────────────────────────────
+
+
+def test_hash_token_given_same_input_then_returns_same_hash():
+    token = "abc123"
+    hash1 = security.hash_token(token)
+    hash2 = security.hash_token(token)
+
+    assert hash1 == hash2
+    assert len(hash1) == 64  # SHA-256 en hex = 64 chars

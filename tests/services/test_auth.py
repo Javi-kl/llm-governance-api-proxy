@@ -1,12 +1,14 @@
 import pytest
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.core import security
 from app.core.enums import UserRole
 from app.core.exceptions import InvalidCredentialsError, PasswordReuseError
 from app.db.models.user import User
+from app.repositories import refresh_tokens as refresh_repo
 from app.schemas.auth import ChangePasswordRequest, LoginRequest
-from app.services.auth import change_password, login
+from app.services.auth import change_password, login, refresh
 
 # ── login ─────────────────────────────────────────────────
 
@@ -87,5 +89,76 @@ def test_given_same_password_then_raises_password_reuse(db_session: Session):
 
     with pytest.raises(PasswordReuseError):
         change_password(admin, password_data, db_session)
+
+
+# ── login (refresh token) ─────────────────────────────────
+
+
+def test_given_valid_credentials_then_returns_token_pair(
+    db_session: Session, regular_user: User
+):
+    login_data = LoginRequest(username="testuser", credential="123456")
+
+    access, refresh = login(login_data, db_session)
+
+    assert isinstance(access, str) and len(access) > 0
+    assert isinstance(refresh, str) and len(refresh) == 128
+
+
+# ── refresh ───────────────────────────────────────────────
+
+
+def _create_refresh_token_for_user(user: User, db: Session, expires_at=None) -> str:
+    """Helper: crea un refresh token en BD para un usuario."""
+    if expires_at is None:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+
+    token = security.create_refresh_token()
+    token_hash = security.hash_token(token)
+    refresh_repo.create(user.id, token_hash, expires_at, db)
+    db.commit()
+    return token
+
+
+def test_given_valid_refresh_token_then_rotates_and_returns_pair(
+    db_session: Session, regular_user: User
+):
+    original_token = _create_refresh_token_for_user(regular_user, db_session)
+
+    new_access, new_refresh = refresh(original_token, db_session)
+
+    assert isinstance(new_access, str) and len(new_access) > 0
+    assert isinstance(new_refresh, str) and len(new_refresh) == 128
+    assert new_refresh != original_token  # rotación
+
+
+def test_given_none_refresh_token_then_raises_invalid_credentials(
+    db_session: Session,
+):
+    with pytest.raises(InvalidCredentialsError):
+        refresh(None, db_session)
+
+
+def test_given_revoked_refresh_token_then_raises_invalid_credentials(
+    db_session: Session, regular_user: User
+):
+    token = _create_refresh_token_for_user(regular_user, db_session)
+
+    stored = refresh_repo.get_by_hash(security.hash_token(token), db_session)
+    refresh_repo.revoke(stored, db_session)
+    db_session.commit()
+
+    with pytest.raises(InvalidCredentialsError):
+        refresh(token, db_session)
+
+
+def test_given_expired_refresh_token_then_raises_invalid_credentials(
+    db_session: Session, regular_user: User
+):
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
+    token = _create_refresh_token_for_user(regular_user, db_session, expires_at=past)
+
+    with pytest.raises(InvalidCredentialsError):
+        refresh(token, db_session)
 
 

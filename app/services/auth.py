@@ -67,7 +67,11 @@ def refresh(refresh_token: str | None, db: Session) -> tuple[str, str]:
         logger.warning("Refresh token inválido o revocado")
         raise exceptions.InvalidCredentialsError()
 
-    if stored.expires_at < datetime.now(timezone.utc):
+    expires_at = stored.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < datetime.now(timezone.utc):
         logger.warning("Refresh token expirado para user_id: %s", stored.user_id)
         raise exceptions.InvalidCredentialsError()
 

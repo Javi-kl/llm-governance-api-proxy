@@ -1,13 +1,17 @@
 import pytest
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
+from app.core import security
 from app.core.exceptions import (
     CannotModifyAdminError,
     InactiveUserError,
     UserAlreadyExistsError,
     UserNotFoundError,
 )
+from app.db.models.refresh_token import RefreshToken
 from app.db.models.user import User
+from app.repositories import refresh_tokens as refresh_repo
 from app.schemas.auth import UserPinResetRequest
 from app.schemas.user import UserCreate
 from app.services import admin
@@ -96,3 +100,44 @@ def test_given_inactive_user_then_raises_inactive_on_pin_reset(
 
     with pytest.raises(InactiveUserError):
         admin.reset_user_pin(regular_user.id, pin_data, db_session)
+
+
+# ── refresh token revocation ──────────────────────────────
+
+
+def _create_refresh_token_for_user(user: User, db: Session) -> str:
+    """Helper: crea un refresh token en BD para un usuario."""
+    token = security.create_refresh_token()
+    token_hash = security.hash_token(token)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    refresh_repo.create(user.id, token_hash, expires_at, db)
+    db.commit()
+    return token
+
+
+def test_given_deactivate_user_then_revokes_all_refresh_tokens(
+    db_session: Session, regular_user: User
+):
+    _create_refresh_token_for_user(regular_user, db_session)
+    _create_refresh_token_for_user(regular_user, db_session)
+
+    admin.deactivate_user(regular_user.id, db_session)
+
+    for row in db_session.query(RefreshToken).filter_by(
+        user_id=regular_user.id
+    ):
+        assert row.revoked is True
+
+
+def test_given_reset_pin_then_revokes_all_refresh_tokens(
+    db_session: Session, regular_user: User
+):
+    _create_refresh_token_for_user(regular_user, db_session)
+
+    pin_data = UserPinResetRequest(pin="99999")
+    admin.reset_user_pin(regular_user.id, pin_data, db_session)
+
+    for row in db_session.query(RefreshToken).filter_by(
+        user_id=regular_user.id
+    ):
+        assert row.revoked is True

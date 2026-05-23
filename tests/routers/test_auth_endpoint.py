@@ -146,3 +146,25 @@ def test_given_authenticated_user_then_logout_deletes_cookie(
     set_cookies = response.headers.get_list("set-cookie")
     assert any("Max-Age=0" in c and "access_token" in c for c in set_cookies)
     assert any("Max-Age=0" in c and "refresh_token" in c for c in set_cookies)
+
+
+# ------ Refresh --------------------------
+def test_given_valid_refresh_cookie_then_returns_200_and_new_tokens(
+    client: TestClient, regular_user: User
+):
+    # Hacer login para obtener las cookies
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    assert login_response.status_code == 200
+    original_refresh = login_response.cookies.get("refresh_token")
+
+    # Llamar al endpoint de refresh
+    refresh_response = client.post("/api/v1/auth/refresh")
+
+    assert refresh_response.status_code == 200
+    assert refresh_response.json()["message"] == "Tokens renovados correctamente"
+    assert "access_token" in refresh_response.cookies
+    assert "refresh_token" in refresh_response.cookies
+    assert refresh_response.cookies["refresh_token"] != original_refresh
