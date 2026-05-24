@@ -47,11 +47,11 @@ Un proxy local que:
 - [ ] Proxy API funcional con endpoint /chat
 - [ ] Detección regex de 3 categorías (identificación, contacto, financiero)
 - [ ] Política mask/block por categoría
-- [ ] Autenticación (PIN user, password admin)
+- [X] Autenticación (PIN user, password admin)
 - [X] Bootstrap del primer admin
 - [X] Gestión de usuarios normales desde panel admin (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
-- [ ] Health check y rate limit en login
+- [X] Health check y rate limit en login
 - [ ] Informe de cumplimiento
 - [ ] UI vanilla (chat + panel admin)
 - [ ] Compatibilidad OpenAI API para integrar con Open WebUI
