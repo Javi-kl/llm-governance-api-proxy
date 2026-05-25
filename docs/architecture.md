@@ -146,6 +146,8 @@ Cliente
 
 **Trade-off:** Sin componentes ni router. Si el proyecto crece a +10 pantallas, migrar a Vue/Svelte.
 
+---
+
 ### ADR-2: CORS local, Nginx solo en producción
 
 **Qué:** En local, CORS en FastAPI. Nginx no se toca. En producción, Nginx como proxy inverso y CORS fuera.
@@ -153,6 +155,8 @@ Cliente
 **Por qué:** En local hay dos orígenes (puertos distintos) → CORS obligatorio. Nginx en local es un contenedor extra sin valor para el MVP.
 
 **Trade-off:** Al desplegar en producción hay que añadir Nginx (~20 líneas de config) y quitar CORS. El frontend no cambia porque usa URLs relativas.
+
+---
 
 ### ADR-3: Política de detección en código
 
@@ -162,6 +166,8 @@ Cliente
 
 **Trade-off:** Añadir categorías requiere redesplegar. Aceptable para un catálogo cerrado por diseño.
 
+---
+
 ### ADR-4: Logs técnicos y de auditoría separados
 
 **Qué:** Técnicos → stdout. Auditoría → tabla en PostgreSQL. Canales independientes.
@@ -169,6 +175,8 @@ Cliente
 **Por qué:** Los leen personas distintas (desarrollador vs admin). Mezclarlos expone metadatos al dev y obliga al admin a filtrar ruido.
 
 **Trade-off:** Dos sistemas de logging. Coste mínimo: Python logger + inserción en BD.
+
+---
 
 ### ADR-5: JWT access token (1h) + refresh token en BD
 
@@ -178,6 +186,8 @@ Cliente
 
 **Trade-off:** Hasta 1 hora de ventana con token válido tras desactivación. Para un MVP con pocos usuarios, aceptable.
 
+---
+
 ### ADR-6: Argon2id para hashing de credenciales
 
 **Qué:** Argon2id para hashear contraseñas de admin y PINs de usuarios.
@@ -185,6 +195,8 @@ Cliente
 **Por qué:** Memory-hard: resiste ataques con GPU/ASIC. Recomendado por OWASP como estándar actual. Ya usado en proyecto anterior del desarrollador.
 
 **Trade-off:** Verificación más lenta que bcrypt (~ms extra). Imperceptible para un login interactivo.
+
+---
 
 ### ADR-7: Proveedor LLM único
 
@@ -194,6 +206,8 @@ Cliente
 
 **Trade-off:** Si el proveedor cae, el proxy no funciona. Para MVP es aceptable — cambiar de proveedor es cambiar variables de entorno y reiniciar.
 
+---
+
 ### ADR-8: Detección por regex en MVP, migrable a NLP en futuro
 
 **Qué:** Detección de datos sensibles con regex puro (módulo `re` de Python). Patrones definidos en un módulo intercambiable (`detector.py`). Sin dependencias externas.
@@ -201,6 +215,8 @@ Cliente
 **Por qué:** Los 3 tipos de datos del MVP (DNI, email, IBAN) tienen formato fijo y predecible. Regex es instantáneo (<1ms), sin descargas de modelos ni dependencias. Cada patrón es explícito y depurable: si hay un falso positivo, se ajusta la expresión. La interfaz del detector se diseña como módulo intercambiable para migrar a Presidio si el catálogo crece a datos sin formato fijo (nombres, direcciones).
 
 **Trade-off:** Solo detecta formato, no contexto. Posibles falsos positivos en teléfono (números sueltos). Si el catálogo se amplía a datos no estructurados, migrar a Presidio — el resto del sistema no cambia porque el detector es un módulo con interfaz fija.
+
+---
 
 ### ADR-9: Limpieza de retención con APScheduler
 
@@ -251,6 +267,7 @@ Cliente
 **Trade-off:** Si el admin olvida sus credenciales o deja la empresa, requiere intervención manual (BD directa o nuevo despliegue con bootstrap). Aceptable para MVP. En fase Beta, si el producto escala a equipos con necesidad de separación de responsabilidades, se evaluará añadir multi-admin con trazabilidad completa.
 
 ---
+
 
 ## Mapeo normativo
 | Requisito del sistema | Regulación | Artículo | Cómo se cumple |
