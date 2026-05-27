@@ -27,7 +27,6 @@ class AuditLog(Base):
     )
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     model: Mapped[str] = mapped_column(String(50), nullable=False)
-
     # action ∈ {"allow", "mask", "block", "error"}
     # No se validan en BD — la fuente de verdad es el código (policy/provider/chat)
     action: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -35,6 +34,5 @@ class AuditLog(Base):
         JSON, nullable=False, default=list
     )
     latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)
-
     # status {"success", "provider_error"}
     status: Mapped[str] = mapped_column(String(20), nullable=False)
