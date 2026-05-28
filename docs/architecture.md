@@ -281,7 +281,7 @@ Dirección postal queda excluida del MVP — requiere NLP, no regex.
 | Teléfono | `(?<!\d)[6-9]\d{8}(?!\d)` | — | `pedido`, `factura`, `ref`, `albarán`, `id`, `nº`, `expediente`, `caso`, `incidencia`, `ticket` | Números de 9 dígitos aparecen en contextos operativos (nº pedido, nº factura, nº expediente). La exclusión evita enmascarar referencias internas. |
 | CP | `\b(?:CP\|código\s+postal\|cód\.\s*postal)\s*[:#.-]?\s*(\d{5})\b` | — | — | Solo detecta si está explícitamente etiquetado. Cero FP en importes, facturas o referencias. Sacrifica recall: no detecta "28001 Madrid" sin etiqueta. |
 | IBAN | `\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b` | MOD 97 | — | El checksum IBAN es determinista y liviano (~15 líneas). Descarta ~99% de coincidencias aleatorias. |
-| Tarjeta | `\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b` | Luhn (MOD 10) | `pedido`, `factura`, `IMEI`, `ref`, `albarán`, `serie`, `lote` | Doble defensa: Luhn descarta ~90% de números aleatorios, la exclusión contextual captura números de serie/IMEI que pasan Luhn. |
+| Tarjeta | `\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b` | Luhn (MOD 10) |  | |
 
 **Por qué:** El regex puro produce falsos positivos que degradan la confianza (cualquier número de 5 dígitos como CP, cualquier secuencia de 16 dígitos como tarjeta). Microsoft Presidio valida este mismo pipeline de 3 capas con precisión > 95% en IBAN y tarjeta.
 Los checksums son Python puro, sin dependencias externas — compatibles con ADR-8.
