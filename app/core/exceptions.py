@@ -64,3 +64,19 @@ class InactiveUserError(DomainError):
     
     def __init__(self) -> None:
         super().__init__("El usuario está desactivado.")
+
+
+class ProviderTimeoutError(DomainError):
+    """El proveedor LLM externo no respondió a tiempo."""
+
+    def __init__(self) -> None:
+        super().__init__("El proveedor externo no respondió a tiempo")
+
+
+class ProviderError(DomainError):
+    """El proveedor LLM externo devolvió un error o no se pudo conectar."""
+
+    def __init__(self, status_code: int | None = None) -> None:
+        self.status_code = status_code
+        detail = f" (HTTP {status_code})" if status_code else ""
+        super().__init__(f"Error del proveedor externo{detail}")

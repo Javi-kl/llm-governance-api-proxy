@@ -17,7 +17,7 @@ Categorías del MVP:
 |Categoría	|Ejemplos de patrones detectables|
 | --- | ---| 
 |identificacion|	DNI, NIF, CIF|
-|contacto	|Email, teléfono, dirección postal|
+|contacto	|Email, teléfono, código postal|
 |financiero	|IBAN, número de tarjeta de crédito|
 
 Criterios de aceptación:
@@ -86,7 +86,7 @@ Catálogo del MVP:
 Categoría	|Patrones
 ----|----
 identificacion|	DNI, NIF, CIF
-contacto	|Email, teléfono, dirección postal
+contacto	|Email, teléfono, código postal
 financiero	|IBAN, nº tarjeta de crédito
 
 Criterios de aceptación:

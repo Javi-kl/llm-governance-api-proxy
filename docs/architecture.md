@@ -23,7 +23,7 @@ Tres capas con responsabilidades estrictas:
 | Componente | Capa | Responsabilidad |
 |---|---|---|
 | **Auth** | Router + Service + Dependencies | Login con JWT, refresh, creación/desactivación de usuarios |
-| **Detector** | Service | Escanea el prompt con regex, devuelve categorías detectadas |
+| **Detector** | Service | Pipeline de 3 capas: regex endurecido → validación algorítmica (checksum) → exclusión por contexto negativo. Devuelve posiciones exactas de cada coincidencia para el enmascarado. Ver ADR-14. |
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
 | **Provider** | Service | Reenvía el prompt (original o enmascarado) al LLM externo |
 | **Chat** | Service + Router | Orquestador para ambos endpoints (`/api/v1/chat` y `/v1/chat/completions`): recibe prompt → detector → policy → provider → logger → respuesta |
@@ -146,6 +146,8 @@ Cliente
 
 **Trade-off:** Sin componentes ni router. Si el proyecto crece a +10 pantallas, migrar a Vue/Svelte.
 
+---
+
 ### ADR-2: CORS local, Nginx solo en producción
 
 **Qué:** En local, CORS en FastAPI. Nginx no se toca. En producción, Nginx como proxy inverso y CORS fuera.
@@ -153,6 +155,8 @@ Cliente
 **Por qué:** En local hay dos orígenes (puertos distintos) → CORS obligatorio. Nginx en local es un contenedor extra sin valor para el MVP.
 
 **Trade-off:** Al desplegar en producción hay que añadir Nginx (~20 líneas de config) y quitar CORS. El frontend no cambia porque usa URLs relativas.
+
+---
 
 ### ADR-3: Política de detección en código
 
@@ -162,6 +166,8 @@ Cliente
 
 **Trade-off:** Añadir categorías requiere redesplegar. Aceptable para un catálogo cerrado por diseño.
 
+---
+
 ### ADR-4: Logs técnicos y de auditoría separados
 
 **Qué:** Técnicos → stdout. Auditoría → tabla en PostgreSQL. Canales independientes.
@@ -169,6 +175,8 @@ Cliente
 **Por qué:** Los leen personas distintas (desarrollador vs admin). Mezclarlos expone metadatos al dev y obliga al admin a filtrar ruido.
 
 **Trade-off:** Dos sistemas de logging. Coste mínimo: Python logger + inserción en BD.
+
+---
 
 ### ADR-5: JWT access token (1h) + refresh token en BD
 
@@ -178,6 +186,8 @@ Cliente
 
 **Trade-off:** Hasta 1 hora de ventana con token válido tras desactivación. Para un MVP con pocos usuarios, aceptable.
 
+---
+
 ### ADR-6: Argon2id para hashing de credenciales
 
 **Qué:** Argon2id para hashear contraseñas de admin y PINs de usuarios.
@@ -185,6 +195,8 @@ Cliente
 **Por qué:** Memory-hard: resiste ataques con GPU/ASIC. Recomendado por OWASP como estándar actual. Ya usado en proyecto anterior del desarrollador.
 
 **Trade-off:** Verificación más lenta que bcrypt (~ms extra). Imperceptible para un login interactivo.
+
+---
 
 ### ADR-7: Proveedor LLM único
 
@@ -194,13 +206,17 @@ Cliente
 
 **Trade-off:** Si el proveedor cae, el proxy no funciona. Para MVP es aceptable — cambiar de proveedor es cambiar variables de entorno y reiniciar.
 
+---
+
 ### ADR-8: Detección por regex en MVP, migrable a NLP en futuro
 
 **Qué:** Detección de datos sensibles con regex puro (módulo `re` de Python). Patrones definidos en un módulo intercambiable (`detector.py`). Sin dependencias externas.
 
 **Por qué:** Los 3 tipos de datos del MVP (DNI, email, IBAN) tienen formato fijo y predecible. Regex es instantáneo (<1ms), sin descargas de modelos ni dependencias. Cada patrón es explícito y depurable: si hay un falso positivo, se ajusta la expresión. La interfaz del detector se diseña como módulo intercambiable para migrar a Presidio si el catálogo crece a datos sin formato fijo (nombres, direcciones).
 
-**Trade-off:** Solo detecta formato, no contexto. Posibles falsos positivos en teléfono (números sueltos). Si el catálogo se amplía a datos no estructurados, migrar a Presidio — el resto del sistema no cambia porque el detector es un módulo con interfaz fija.
+**Trade-off:** Solo detecta formato, no contexto semántico (NLP). Los falsos positivos se mitigan con validación algorítmica (checksum) y exclusión posicional por contexto negativo — ver ADR-14 para el detalle por categoría. Si el catálogo se amplía a datos no estructurados, migrar a Presidio — el resto del sistema no cambia porque el detector es un módulo con interfaz fija.
+
+---
 
 ### ADR-9: Limpieza de retención con APScheduler
 
@@ -251,6 +267,30 @@ Cliente
 **Trade-off:** Si el admin olvida sus credenciales o deja la empresa, requiere intervención manual (BD directa o nuevo despliegue con bootstrap). Aceptable para MVP. En fase Beta, si el producto escala a equipos con necesidad de separación de responsabilidades, se evaluará añadir multi-admin con trazabilidad completa.
 
 ---
+
+### ADR-14: Pipeline de detección con validación algorítmica y exclusión contextual
+
+**Qué:** El detector añade 2 capas sobre el regex base: validación algorítmica (checksum Luhn para tarjetas, MOD 97 para IBAN) y exclusión por contexto negativo (el match se descarta si está precedido por palabras como "pedido" o "factura"). 
+Dirección postal queda excluida del MVP — requiere NLP, no regex.
+| Patrón | Regex | Validación | Exclusión contextual | Justificación |
+|--------|-------|-----------|---------------------|---------------|
+| DNI | `(?<!\d)\d{8}[A-HJ-NP-TV-Z](?!\d)` | Módulo 23 (pospuesto a Fase 2) | — | El regex ya acota a 20 letras válidas. Solo ~4% de coincidencias aleatorias pasan. Si QA muestra ruido, se añade checksum. |
+| NIF | `(?<!\d)[XYZ]\d{7}[A-HJ-NP-TV-Z](?!\d)` | Módulo 23 (pospuesto a Fase 2) | — | Ídem DNI. |
+| CIF | `\b[A-HJ-NP-SUVW]\d{7}[A-Z0-9]\b` | Algoritmo CIF (pospuesto a Fase 2) | — | La letra inicial válida + dígito de control ya filtran ~70%. |
+| Email | `\b[\w\.-]+@[\w\.-]+\.\w{2,}\b` | — | — | El formato de email es suficientemente restrictivo por sí solo. |
+| Teléfono | `(?<!\d)[6-9]\d{8}(?!\d)` | — | `pedido`, `factura`, `ref`, `albarán`, `id`, `nº`, `expediente`, `caso`, `incidencia`, `ticket` | Números de 9 dígitos aparecen en contextos operativos (nº pedido, nº factura, nº expediente). La exclusión evita enmascarar referencias internas. |
+| CP | `\b(?:CP\|código\s+postal\|cód\.\s*postal)\s*[:#.-]?\s*(\d{5})\b` | — | — | Solo detecta si está explícitamente etiquetado. Cero FP en importes, facturas o referencias. Sacrifica recall: no detecta "28001 Madrid" sin etiqueta. |
+| IBAN | `\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b` | MOD 97 | — | El checksum IBAN es determinista y liviano (~15 líneas). Descarta ~99% de coincidencias aleatorias. |
+| Tarjeta | `\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b` | Luhn (MOD 10) |  | |
+
+**Por qué:** El regex puro produce falsos positivos que degradan la confianza (cualquier número de 5 dígitos como CP, cualquier secuencia de 16 dígitos como tarjeta). Microsoft Presidio valida este mismo pipeline de 3 capas con precisión > 95% en IBAN y tarjeta.
+Los checksums son Python puro, sin dependencias externas — compatibles con ADR-8.
+
+**Trade-off:** Checksums añaden < 0.1ms por validación. La exclusión contextual es frágil (depende de idioma y redacción): puede producir falsos negativos si el usuario escribe "mi pedido fue la tarjeta 4111...". Se acepta falso negativo > falso positivo
+para experiencia de usuario. CP solo con prefijo explícito sacrifica recall pero garantiza cero falsos positivos en importes y referencias. Dirección postal se pospone a Beta con NLP (ADR-8).
+
+---
+
 
 ## Mapeo normativo
 | Requisito del sistema | Regulación | Artículo | Cómo se cumple |

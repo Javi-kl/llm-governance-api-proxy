@@ -76,6 +76,11 @@ def refresh(refresh_token: str | None, db: Session) -> tuple[str, str]:
         raise exceptions.InvalidCredentialsError()
 
     user = stored.user
+    if not user.active:
+        logger.warning("Refresh fallido: usuario inactivo: %s", user.username)
+        refresh_repo.revoke(stored, db)
+        raise exceptions.InvalidCredentialsError()
+        
     refresh_repo.revoke(stored, db)
 
     logger.info("Refresh exitoso para: %s", user.username)

@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     # LLM externo
     LLM_API_KEY: SecretStr
     LLM_BASE_URL: HttpUrl
-    LLM_MODEL: str = ""  
-
+    LLM_MODEL: str = ""
+    LLM_PROVIDER_TIMEOUT: int = 30
+    
     # Bootstrap admin
     BOOTSTRAP_ADMIN_PASSWORD: SecretStr = SecretStr("")
 
@@ -33,4 +34,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Cacheado tras la primera llamada."""
-    return Settings() # type: ignore[call-arg]
+    return Settings()  # type: ignore[call-arg]

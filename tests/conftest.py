@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from limits.storage.memory import MemoryStorage
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -29,8 +30,9 @@ TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
 @pytest.fixture(autouse=True)
 def reset_rate_limiter() -> Generator[None, None, None]:
     """Limpia el storage en memoria de SlowAPI antes de cada test."""
-    if limiter._storage is not None and hasattr(limiter._storage, "storage"):
-        limiter._storage.storage.clear()
+    storage = limiter._storage
+    if isinstance(storage, MemoryStorage):
+        storage.storage.clear()
     yield
 
 
