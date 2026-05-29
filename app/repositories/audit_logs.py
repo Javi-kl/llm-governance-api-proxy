@@ -88,3 +88,48 @@ def delete_older_than(db: Session, days: int = 90) -> int:
         db.execute(delete(AuditLog).where(AuditLog.timestamp < cutoff))
         db.flush()
     return count
+
+
+def count_in_range(
+    db: Session,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> int:
+    """Cuenta el total de registros en el rango de fechas."""
+    base = select(func.count()).select_from(AuditLog)
+    if date_from is not None:
+        base = base.where(AuditLog.timestamp >= date_from)
+    if date_to is not None:
+        base = base.where(AuditLog.timestamp <= date_to)
+    return db.execute(base).scalar_one()
+
+
+def count_by_action(
+    db: Session,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> dict[str, int]:
+    """Cuenta registros agrupados por acción en el rango de fechas."""
+    stmt = select(
+        AuditLog.action, func.count().label("total")
+    ).group_by(AuditLog.action)
+    if date_from is not None:
+        stmt = stmt.where(AuditLog.timestamp >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(AuditLog.timestamp <= date_to)
+    rows = db.execute(stmt).all()
+    return {row.action: row.total for row in rows}
+
+
+def get_all_detected_categories(
+    db: Session,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> list[list[str]]:
+    """Obtiene todas las listas de categorías detectadas en el rango."""
+    stmt = select(AuditLog.detected_categories)
+    if date_from is not None:
+        stmt = stmt.where(AuditLog.timestamp >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(AuditLog.timestamp <= date_to)
+    return [row.detected_categories for row in db.execute(stmt).all()]
