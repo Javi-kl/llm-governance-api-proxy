@@ -5,6 +5,7 @@ from app.services.policy import enmascarar, evaluar
 
 # ── Ciclo 1: Tracer bullet — vacío → ALLOW ────────────────
 
+
 def test_given_no_categories_then_allow():
     assert evaluar([]) == PolicyAction.ALLOW
 
@@ -31,26 +32,33 @@ def test_given_financiero_then_block():
 
 
 def test_given_financiero_and_identificacion_then_block():
-    assert evaluar(
-        [SensitiveCategory.FINANCIERO, SensitiveCategory.IDENTIFICACION]
-    ) == PolicyAction.BLOCK
+    assert (
+        evaluar([SensitiveCategory.FINANCIERO, SensitiveCategory.IDENTIFICACION])
+        == PolicyAction.BLOCK
+    )
 
 
 def test_given_all_categories_then_block():
-    assert evaluar([
-        SensitiveCategory.IDENTIFICACION,
-        SensitiveCategory.CONTACTO,
-        SensitiveCategory.FINANCIERO,
-    ]) == PolicyAction.BLOCK
+    assert (
+        evaluar(
+            [
+                SensitiveCategory.IDENTIFICACION,
+                SensitiveCategory.CONTACTO,
+                SensitiveCategory.FINANCIERO,
+            ]
+        )
+        == PolicyAction.BLOCK
+    )
 
 
 # ── Ciclo 5: Múltiples MASK sin BLOCK ─────────────────────
 
 
 def test_given_identificacion_and_contacto_then_mask():
-    assert evaluar(
-        [SensitiveCategory.IDENTIFICACION, SensitiveCategory.CONTACTO]
-    ) == PolicyAction.MASK
+    assert (
+        evaluar([SensitiveCategory.IDENTIFICACION, SensitiveCategory.CONTACTO])
+        == PolicyAction.MASK
+    )
 
 
 # ── Enmascarado ───────────────────────────────────────────

@@ -80,16 +80,14 @@ def refresh(refresh_token: str | None, db: Session) -> tuple[str, str]:
         logger.warning("Refresh fallido: usuario inactivo: %s", user.username)
         refresh_repo.revoke(stored, db)
         raise exceptions.InvalidCredentialsError()
-        
+
     refresh_repo.revoke(stored, db)
 
     logger.info("Refresh exitoso para: %s", user.username)
     return _issue_token_pair(user, db)
 
 
-def logout(
-    current_user: User, refresh_token: str | None, db: Session
-) -> None:
+def logout(current_user: User, refresh_token: str | None, db: Session) -> None:
     """Cierra sesión: revoca el refresh token si existe."""
     if refresh_token:
         token_hash = security.hash_token(refresh_token)

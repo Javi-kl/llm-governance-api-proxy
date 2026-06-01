@@ -18,7 +18,9 @@ def create_access_token(
     subject: int, role: UserRole, expires_delta: timedelta | None = None
 ) -> str:
     if expires_delta is None:
-        expires_delta = timedelta(minutes=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta = timedelta(
+            minutes=config.get_settings().ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     now = datetime.now(timezone.utc)
     payload = {
@@ -29,7 +31,9 @@ def create_access_token(
     }
 
     return jwt.encode(
-        payload, config.get_settings().SECRET_KEY.get_secret_value(), algorithm=config.get_settings().ALGORITHM
+        payload,
+        config.get_settings().SECRET_KEY.get_secret_value(),
+        algorithm=config.get_settings().ALGORITHM,
     )
 
 

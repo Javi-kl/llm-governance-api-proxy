@@ -56,8 +56,10 @@ def get_all_normal_users(
         select(func.count()).select_from(base_query.subquery())
     ).scalar_one()
 
-    result_users = db.execute(
-        base_query.order_by(User.id.asc()).offset(offset).limit(limit)
-    ).scalars().all()
+    result_users = (
+        db.execute(base_query.order_by(User.id.asc()).offset(offset).limit(limit))
+        .scalars()
+        .all()
+    )
 
     return result_users, total

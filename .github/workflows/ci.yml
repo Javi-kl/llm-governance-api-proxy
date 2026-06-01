@@ -27,7 +27,7 @@ jobs:
       - name: Run Pyright
         run: pyright
 
-  
+
   postgres_test:
     runs-on: ubuntu-latest
 
@@ -37,7 +37,7 @@ jobs:
         env:
           POSTGRES_USER: proxy_db_user
           POSTGRES_PASSWORD: proxy_db_pass
-          POSTGRES_DB: proxy_db_test  
+          POSTGRES_DB: proxy_db_test
         options: >-
           --health-cmd "pg_isready -U proxy_db_user -d proxy_db_test"
           --health-interval 10s

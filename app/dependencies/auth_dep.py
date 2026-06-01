@@ -36,6 +36,7 @@ def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
 
     return user
 
+
 def require_admin(request: Request, db: Session = Depends(get_db)) -> User:
     """Autentica solo admins."""
     user = auth_dep(request, db)

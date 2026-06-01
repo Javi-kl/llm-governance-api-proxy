@@ -28,6 +28,7 @@ _MARCADORES: dict[str, str] = {
 
 # ── Funciones públicas ─────────────────────────────────────
 
+
 def evaluar(categorias: list[SensitiveCategory]) -> PolicyAction:
     if not categorias:
         return PolicyAction.ALLOW
@@ -43,5 +44,5 @@ def enmascarar(prompt: str, detections: list[Detection]) -> str:
     resultado = prompt
     for d in sorted(detections, key=lambda d: d.start, reverse=True):
         marcador = _MARCADORES[d.pattern_name]
-        resultado = resultado[:d.start] + marcador + resultado[d.end:]
+        resultado = resultado[: d.start] + marcador + resultado[d.end :]
     return resultado

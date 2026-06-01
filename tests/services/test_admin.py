@@ -123,9 +123,7 @@ def test_given_deactivate_user_then_revokes_all_refresh_tokens(
 
     admin.deactivate_user(regular_user.id, db_session)
 
-    for row in db_session.query(RefreshToken).filter_by(
-        user_id=regular_user.id
-    ):
+    for row in db_session.query(RefreshToken).filter_by(user_id=regular_user.id):
         assert row.revoked is True
 
 
@@ -137,7 +135,5 @@ def test_given_reset_pin_then_revokes_all_refresh_tokens(
     pin_data = UserPinResetRequest(pin="99999")
     admin.reset_user_pin(regular_user.id, pin_data, db_session)
 
-    for row in db_session.query(RefreshToken).filter_by(
-        user_id=regular_user.id
-    ):
+    for row in db_session.query(RefreshToken).filter_by(user_id=regular_user.id):
         assert row.revoked is True

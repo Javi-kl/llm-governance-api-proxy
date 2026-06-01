@@ -15,7 +15,7 @@ Criterios de aceptación:
 
 Categorías del MVP:
 |Categoría	|Ejemplos de patrones detectables|
-| --- | ---| 
+| --- | ---|
 |identificacion|	DNI, NIF, CIF|
 |contacto	|Email, teléfono, código postal|
 |financiero	|IBAN, número de tarjeta de crédito|
@@ -316,7 +316,3 @@ Criterios de aceptación:
 - DADO QUE el proxy bloquea una solicitud, CUANDO la interfaz de chat muestra el resultado, ENTONCES el usuario ve un mensaje claro indicando que su mensaje no se envió por contener datos sensibles.
 - DADO QUE el proxy enmascara una solicitud, CUANDO la interfaz muestra la respuesta del LLM, ENTONCES el usuario no recibe ninguna notificación de que su prompt fue modificado.
 - DADO QUE un admin revisa el log de un bloqueo, CUANDO consulta el detalle, ENTONCES ve qué categorías se detectaron, pero sin ver el contenido del prompt.
-
-
-
-

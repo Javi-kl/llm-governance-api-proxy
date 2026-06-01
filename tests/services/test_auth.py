@@ -13,8 +13,7 @@ from app.services.auth import change_password, login, refresh
 # ── login ─────────────────────────────────────────────────
 
 
-def test_given_nonexistent_user_then_raises_invalid_credentials(
-    db_session: Session):
+def test_given_nonexistent_user_then_raises_invalid_credentials(db_session: Session):
     login_data = LoginRequest(username="ghost", credential="123456")
 
     with pytest.raises(InvalidCredentialsError):
@@ -22,7 +21,8 @@ def test_given_nonexistent_user_then_raises_invalid_credentials(
 
 
 def test_given_wrong_credential_then_raises_invalid_credentials(
-    db_session: Session, regular_user: User):
+    db_session: Session, regular_user: User
+):
     login_data = LoginRequest(username="testuser", credential="999999")
 
     with pytest.raises(InvalidCredentialsError):
@@ -30,7 +30,8 @@ def test_given_wrong_credential_then_raises_invalid_credentials(
 
 
 def test_given_inactive_user_then_raises_invalid_credentials(
-    db_session: Session, regular_user: User):
+    db_session: Session, regular_user: User
+):
     regular_user.active = False
     db_session.commit()
 
@@ -160,5 +161,3 @@ def test_given_expired_refresh_token_then_raises_invalid_credentials(
 
     with pytest.raises(InvalidCredentialsError):
         refresh(token, db_session)
-
-

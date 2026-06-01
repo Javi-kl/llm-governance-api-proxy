@@ -12,9 +12,7 @@ def test_bootstrap_admin_given_existing_admin_then_does_nothing(db_session):
 
     bootstrap_admin(db_session, SecretStr("valid12345"))
 
-    admin_count = len(
-        db_session.query(users.User).filter_by(role=UserRole.ADMIN).all()
-    )
+    admin_count = len(db_session.query(users.User).filter_by(role=UserRole.ADMIN).all())
     assert admin_count == 1
 
 
@@ -35,4 +33,3 @@ def test_bootstrap_admin_given_valid_password_then_creates_admin(db_session):
     assert admin is not None
     assert admin.username == "admin"
     assert admin.role == UserRole.ADMIN
-        

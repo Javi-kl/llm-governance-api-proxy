@@ -19,10 +19,7 @@ from app.repositories import users
 # Engine de test: PostgreSQL (TEST_DATABASE_URL).
 _test_db_url = config.get_settings().TEST_DATABASE_URL
 if not _test_db_url:
-    raise RuntimeError(
-        "TEST_DATABASE_URL no está configurada. "
-        "Defínela en .env."
-    )
+    raise RuntimeError("TEST_DATABASE_URL no está configurada. Defínela en .env.")
 test_engine = create_engine(_test_db_url, echo=False)
 TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
 
