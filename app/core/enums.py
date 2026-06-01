@@ -11,9 +11,10 @@ class SensitiveCategory(str, enum.Enum):
     CONTACTO = "contacto"
     FINANCIERO = "financiero"
 
-    
+
 class PolicyAction(str, enum.Enum):
     """Orden de prioridad: BLOCK > MASK > ALLOW."""
+
     ALLOW = "allow"
     MASK = "mask"
     BLOCK = "block"

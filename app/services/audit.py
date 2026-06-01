@@ -71,7 +71,10 @@ def generar_informe(
     """Genera un informe de cumplimiento agregado para el rango de fechas."""
     total = audit_logs.count_in_range(db, date_from, date_to)
     by_action = {
-        "allow": 0, "mask": 0, "block": 0, "error": 0,
+        "allow": 0,
+        "mask": 0,
+        "block": 0,
+        "error": 0,
     }
     by_action.update(audit_logs.count_by_action(db, date_from, date_to))
 

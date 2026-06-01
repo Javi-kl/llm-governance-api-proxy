@@ -23,6 +23,7 @@ from app.core.enums import SensitiveCategory
 @dataclass
 class Detection:
     """Un dato sensible detectado en el prompt."""
+
     category: SensitiveCategory
     pattern_name: str
     match: str
@@ -33,6 +34,7 @@ class Detection:
 @dataclass
 class _Patron:
     """Patrón de detección interno."""
+
     name: str
     category: SensitiveCategory
     regex: str
@@ -46,8 +48,16 @@ _DNI_REGEX = r"(?<!\d)\d{8}[A-HJ-NP-TV-Z](?!\d)"
 _EMAIL_REGEX = r"\b[\w\.-]+@[\w\.-]+\.\w{2,}\b"
 _TELEFONO_REGEX = r"(?<!\d)[6-9]\d{8}(?!\d)"
 _TELEFONO_EXCLUIR = [
-    "pedido", "factura", "ref", "albarán", "id", "nº",
-    "expediente", "caso", "incidencia", "ticket",
+    "pedido",
+    "factura",
+    "ref",
+    "albarán",
+    "id",
+    "nº",
+    "expediente",
+    "caso",
+    "incidencia",
+    "ticket",
 ]
 _IBAN_REGEX = r"\b[A-Z]{2}\d{2}(?:[\s-]?[A-Z0-9]){11,30}\b"
 _TARJETA_REGEX = r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"
@@ -60,6 +70,7 @@ _CIF_REGEX = r"\b[A-HJ-NP-SUVW]\d{7}[A-Z0-9]\b"
 
 
 # ── Helpers internos ───────────────────────────────────────
+
 
 def _es_contexto_negativo(texto: str, match_start: int, prefixes: list[str]) -> bool:
     """Comprueba si el match está precedido por alguna palabra de exclusión."""
@@ -112,15 +123,21 @@ _PATRONES: list[_Patron] = [
     _Patron("CIF", SensitiveCategory.IDENTIFICACION, _CIF_REGEX),
     _Patron("email", SensitiveCategory.CONTACTO, _EMAIL_REGEX),
     _Patron(
-        "telefono", SensitiveCategory.CONTACTO, _TELEFONO_REGEX,
+        "telefono",
+        SensitiveCategory.CONTACTO,
+        _TELEFONO_REGEX,
         negative_prefixes=_TELEFONO_EXCLUIR,
     ),
     _Patron(
-        "iban", SensitiveCategory.FINANCIERO, _IBAN_REGEX,
+        "iban",
+        SensitiveCategory.FINANCIERO,
+        _IBAN_REGEX,
         validator=_validar_iban,
     ),
     _Patron(
-        "tarjeta", SensitiveCategory.FINANCIERO, _TARJETA_REGEX,
+        "tarjeta",
+        SensitiveCategory.FINANCIERO,
+        _TARJETA_REGEX,
         validator=_validar_luhn,
     ),
     _Patron("cp", SensitiveCategory.CONTACTO, _CP_REGEX),
@@ -128,6 +145,7 @@ _PATRONES: list[_Patron] = [
 
 
 # ── Función pública ────────────────────────────────────────
+
 
 def analizar(prompt: str) -> list[Detection]:
     """Escanea el prompt en busca de datos sensibles."""
@@ -141,12 +159,14 @@ def analizar(prompt: str) -> list[Detection]:
                 continue
             if patron.validator and not patron.validator(match.group()):
                 continue
-            detections.append(Detection(
-                category=patron.category,
-                pattern_name=patron.name,
-                match=match.group(),
-                start=match.start(),
-                end=match.end(),
-            ))
+            detections.append(
+                Detection(
+                    category=patron.category,
+                    pattern_name=patron.name,
+                    match=match.group(),
+                    start=match.start(),
+                    end=match.end(),
+                )
+            )
 
     return detections

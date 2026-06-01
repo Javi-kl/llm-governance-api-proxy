@@ -38,9 +38,7 @@ def deactivate_user(user_id: int, db: Session) -> None:
     refresh_repo.revoke_all_for_user(user_id, db)
 
 
-def reset_user_pin(
-    user_id: int, user_pin: UserPinResetRequest, db: Session
-) -> None:
+def reset_user_pin(user_id: int, user_pin: UserPinResetRequest, db: Session) -> None:
     user = _get_normal_active_user_or_raise(user_id, db)
     users.reset_user_pin(user, security.hash_credential(user_pin.pin), db)
     refresh_repo.revoke_all_for_user(user_id, db)

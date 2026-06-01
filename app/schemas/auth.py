@@ -18,12 +18,13 @@ class ChangePasswordRequest(BaseModel):
     @classmethod
     def validate_new_password(cls, new_password: str) -> str:
         return security.validate_password_strength(new_password)
-        
+
     @model_validator(mode="after")
     def passwords_match(self) -> "ChangePasswordRequest":
         if self.new_password != self.confirm_password:
             raise ValueError("Las contraseñas no coinciden.")
         return self
+
 
 class UserPinResetRequest(BaseModel):
     pin: str

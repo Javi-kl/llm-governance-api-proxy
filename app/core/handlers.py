@@ -30,18 +30,14 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(PermissionDeniedError)
-    async def permission_denied_handler(
-        request: Request, exc: PermissionDeniedError
-    ):
+    async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
         return error_response(
             403,
             ErrorEnvelope(code="FORBIDDEN", message="No tienes permiso para hacer eso"),
         )
 
     @app.exception_handler(UserNotFoundError)
-    async def user_not_found_handler(
-        request: Request, exc: UserNotFoundError
-    ):
+    async def user_not_found_handler(request: Request, exc: UserNotFoundError):
         return error_response(
             404,
             ErrorEnvelope(code="USER_NOT_FOUND", message="Usuario no encontrado"),
@@ -60,18 +56,14 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(InactiveUserError)
-    async def inactive_user_handler(
-        request: Request, exc: InactiveUserError
-    ):
+    async def inactive_user_handler(request: Request, exc: InactiveUserError):
         return error_response(
             422,
             ErrorEnvelope(code="USER_INACTIVE", message="El usuario está desactivado."),
         )
 
     @app.exception_handler(PasswordReuseError)
-    async def password_reuse_handler(
-        request: Request, exc: PasswordReuseError
-    ):
+    async def password_reuse_handler(request: Request, exc: PasswordReuseError):
         return error_response(
             400,
             ErrorEnvelope(
@@ -93,9 +85,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_error_handler(
-        request: Request, exc: RequestValidationError
-    ):
+    async def validation_error_handler(request: Request, exc: RequestValidationError):
         details = [
             ErrorDetail(
                 field=str(error.get("loc", ())[-1]) if error.get("loc") else "body",

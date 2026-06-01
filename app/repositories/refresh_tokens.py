@@ -10,9 +10,7 @@ def create(
     user_id: int, token_hash: str, expires_at: datetime, db: Session
 ) -> RefreshToken:
     """Inserta un nuevo refresh token en BD."""
-    token = RefreshToken(
-        user_id=user_id, token_hash=token_hash, expires_at=expires_at
-    )
+    token = RefreshToken(user_id=user_id, token_hash=token_hash, expires_at=expires_at)
     db.add(token)
     db.flush()
     return token
@@ -35,7 +33,7 @@ def revoke_all_for_user(user_id: int, db: Session) -> None:
     """Revoca TODOS los refresh tokens de un usuario."""
     db.execute(
         update(RefreshToken)
-        .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False))
         .values(revoked=True)
     )
     db.flush()

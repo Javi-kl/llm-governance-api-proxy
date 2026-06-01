@@ -122,7 +122,7 @@ def test_given_login_then_cookie_has_security_attributes(
     assert response.status_code == 200
     set_cookies = response.headers.get_list("set-cookie")
     assert len(set_cookies) == 2
-    
+
     # Parsear el de access_token
     access_cookie = SimpleCookie()
     access_cookie.load(set_cookies[0])
@@ -142,7 +142,7 @@ def test_given_authenticated_user_then_logout_deletes_cookie(
     )
     response = client.post("/api/v1/auth/logout")
     assert response.status_code == 200
-    
+
     set_cookies = response.headers.get_list("set-cookie")
     assert any("Max-Age=0" in c and "access_token" in c for c in set_cookies)
     assert any("Max-Age=0" in c and "refresh_token" in c for c in set_cookies)

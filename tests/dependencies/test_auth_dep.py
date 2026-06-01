@@ -13,9 +13,7 @@ from app.dependencies.auth_dep import auth_dep, require_admin
 # ── auth_dep ──────────────────────────────────────────────
 
 
-def test_given_valid_token_then_returns_user(
-    db_session: Session, admin_user: User
-):
+def test_given_valid_token_then_returns_user(db_session: Session, admin_user: User):
     token = security.create_access_token(admin_user.id, UserRole.ADMIN)
     request = MagicMock(spec=Request)
     request.cookies = {"access_token": token}
@@ -52,9 +50,7 @@ def test_given_expired_token_then_raises_invalid_credentials(
 # ── require_admin ─────────────────────────────────────────
 
 
-def test_given_admin_user_then_returns_user(
-    db_session: Session, admin_user: User
-):
+def test_given_admin_user_then_returns_user(db_session: Session, admin_user: User):
     token = security.create_access_token(admin_user.id, UserRole.ADMIN)
     request = MagicMock(spec=Request)
     request.cookies = {"access_token": token}

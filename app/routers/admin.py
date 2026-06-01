@@ -1,18 +1,18 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models.user import User
 from app.dependencies.auth_dep import require_admin
+from app.schemas.auth import UserPinResetRequest
 from app.schemas.common import MessageResponse
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
     UserResponse,
 )
-from app.schemas.auth import UserPinResetRequest
 from app.services import admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])

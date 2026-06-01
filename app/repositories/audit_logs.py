@@ -110,9 +110,9 @@ def count_by_action(
     date_to: datetime | None = None,
 ) -> dict[str, int]:
     """Cuenta registros agrupados por acción en el rango de fechas."""
-    stmt = select(
-        AuditLog.action, func.count().label("total")
-    ).group_by(AuditLog.action)
+    stmt = select(AuditLog.action, func.count().label("total")).group_by(
+        AuditLog.action
+    )
     if date_from is not None:
         stmt = stmt.where(AuditLog.timestamp >= date_from)
     if date_to is not None:

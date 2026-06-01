@@ -10,18 +10,27 @@ from app.services.audit import generar_informe, listar_logs, registrar_log
 _contador = 0
 
 
-def _crear_log(db: Session, user: User, action: str = "allow",
-               categories: list[str] | None = None,
-               request_id: str | None = None) -> AuditLogResponse:
+def _crear_log(
+    db: Session,
+    user: User,
+    action: str = "allow",
+    categories: list[str] | None = None,
+    request_id: str | None = None,
+) -> AuditLogResponse:
     """Atajo para crear un registro de auditoría en tests."""
     global _contador
     _contador += 1
     rid = request_id or f"req-{_contador}"
     cats = categories if categories is not None else []
     return registrar_log(
-        request_id=rid, user_id=user.id, provider="openai",
-        model="gpt-4o-mini", action=action,
-        detected_categories=cats, latency_ms=100, status="success",
+        request_id=rid,
+        user_id=user.id,
+        provider="openai",
+        model="gpt-4o-mini",
+        action=action,
+        detected_categories=cats,
+        latency_ms=100,
+        status="success",
         db=db,
     )
 
@@ -81,16 +90,17 @@ def test_listar_logs_sin_resultados(db_session: Session, regular_user: User):
 def test_generar_informe_con_datos(db_session: Session, regular_user: User):
     _crear_log(db_session, regular_user, action="allow")
     _crear_log(db_session, regular_user, action="allow")
-    _crear_log(db_session, regular_user, action="mask",
-               categories=["identificacion"])
-    _crear_log(db_session, regular_user, action="block",
-               categories=["financiero"])
+    _crear_log(db_session, regular_user, action="mask", categories=["identificacion"])
+    _crear_log(db_session, regular_user, action="block", categories=["financiero"])
 
     reporte = generar_informe(db_session)
 
     assert reporte.total_requests == 4
     assert reporte.by_action == {
-        "allow": 2, "mask": 1, "block": 1, "error": 0,
+        "allow": 2,
+        "mask": 1,
+        "block": 1,
+        "error": 0,
     }
     assert "financiero" in reporte.top_categories
     assert "identificacion" in reporte.top_categories
@@ -101,7 +111,10 @@ def test_generar_informe_sin_datos(db_session: Session, regular_user: User):
 
     assert reporte.total_requests == 0
     assert reporte.by_action == {
-        "allow": 0, "mask": 0, "block": 0, "error": 0,
+        "allow": 0,
+        "mask": 0,
+        "block": 0,
+        "error": 0,
     }
     assert reporte.top_categories == []
     assert reporte.last_cleanup is None
@@ -109,10 +122,10 @@ def test_generar_informe_sin_datos(db_session: Session, regular_user: User):
 
 def test_generar_informe_con_rango(db_session: Session, regular_user: User):
     _crear_log(db_session, regular_user, action="allow")
-    _crear_log(db_session, regular_user, action="block",
-               categories=["financiero"])
+    _crear_log(db_session, regular_user, action="block", categories=["financiero"])
 
     from datetime import datetime, timedelta
+
     futuro = datetime.utcnow() + timedelta(days=1)
     reporte = generar_informe(db_session, date_to=futuro - timedelta(hours=1))
 

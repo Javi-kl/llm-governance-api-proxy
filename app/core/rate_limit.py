@@ -10,6 +10,7 @@ from app.schemas.error import ErrorEnvelope
 
 logger = logging.getLogger("rate_limit")
 
+
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
     logger.warning(
         "Rate limit superado - IP: %s, Path: %s",

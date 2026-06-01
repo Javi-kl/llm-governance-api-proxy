@@ -11,6 +11,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh:z
     healthcheck:
       # pg_isready retorna 0 solo cuando la BD acepta conexiones
       # Sin esto, la app intenta conectar antes de que Postgres esté listo

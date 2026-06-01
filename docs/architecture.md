@@ -270,7 +270,7 @@ Cliente
 
 ### ADR-14: Pipeline de detección con validación algorítmica y exclusión contextual
 
-**Qué:** El detector añade 2 capas sobre el regex base: validación algorítmica (checksum Luhn para tarjetas, MOD 97 para IBAN) y exclusión por contexto negativo (el match se descarta si está precedido por palabras como "pedido" o "factura"). 
+**Qué:** El detector añade 2 capas sobre el regex base: validación algorítmica (checksum Luhn para tarjetas, MOD 97 para IBAN) y exclusión por contexto negativo (el match se descarta si está precedido por palabras como "pedido" o "factura").
 Dirección postal queda excluida del MVP — requiere NLP, no regex.
 | Patrón | Regex | Validación | Exclusión contextual | Justificación |
 |--------|-------|-----------|---------------------|---------------|

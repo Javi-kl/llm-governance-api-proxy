@@ -36,7 +36,9 @@ def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        max_age=int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()),
+        max_age=int(
+            timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()
+        ),
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         path="/",
@@ -74,7 +76,9 @@ def refresh_token(
         key="access_token",
         value=new_access,
         httponly=True,
-        max_age=int(timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()),
+        max_age=int(
+            timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()
+        ),
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         path="/",

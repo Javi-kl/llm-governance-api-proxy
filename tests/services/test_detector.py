@@ -4,6 +4,7 @@ from app.services.detector import Detection, analizar
 
 # ── Ciclo 0: Tracer bullet — prompt vacío ────────────────
 
+
 def test_given_empty_prompt_then_no_detections():
     assert analizar("") == []
 
