@@ -18,7 +18,7 @@ class RefreshToken(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     token_hash: Mapped[str] = mapped_column(
         String(255), unique=True, index=True, nullable=False
-    )
+    )  # hash SHA-256 del refresh token, no token en claro
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), index=True, nullable=False
     )

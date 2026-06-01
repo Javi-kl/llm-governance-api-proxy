@@ -1,3 +1,9 @@
+"""
+Valida credenciales, emite pares access/refresh, rota refresh tokens
+y revoca sesiones cuando el usuario cambia contraseña o hace logout.
+No gestiona cookies: eso pertenece al router.
+"""
+
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -16,7 +22,6 @@ logger = logging.getLogger("auth_service")
 
 
 def _issue_token_pair(user: User, db: Session) -> tuple[str, str]:
-    """Crea access + refresh token, guarda el refresh en BD, devuelve ambos."""
     settings = config.get_settings()
 
     access_token = security.create_access_token(subject=user.id, role=user.role)
@@ -35,7 +40,6 @@ def _issue_token_pair(user: User, db: Session) -> tuple[str, str]:
 
 
 def login(login_data: LoginRequest, db: Session) -> tuple[str, str]:
-    """Login unificado. Devuelve (access_token, refresh_token)."""
     user = users.get_by_username(login_data.username, db)
 
     if not user:
@@ -55,7 +59,6 @@ def login(login_data: LoginRequest, db: Session) -> tuple[str, str]:
 
 
 def refresh(refresh_token: str | None, db: Session) -> tuple[str, str]:
-    """Renueva el par de tokens usando un refresh token válido."""
     if not refresh_token:
         logger.warning("Refresh sin token en cookie")
         raise exceptions.InvalidCredentialsError()
@@ -88,7 +91,6 @@ def refresh(refresh_token: str | None, db: Session) -> tuple[str, str]:
 
 
 def logout(current_user: User, refresh_token: str | None, db: Session) -> None:
-    """Cierra sesión: revoca el refresh token si existe."""
     if refresh_token:
         token_hash = security.hash_token(refresh_token)
         stored = refresh_repo.get_by_hash(token_hash, db)
@@ -103,7 +105,6 @@ def change_password(
     password_data: ChangePasswordRequest,
     db: Session,
 ) -> None:
-    """Cambia la contraseña y revoca todos los refresh tokens del usuario."""
     if not security.verify_password(
         password_data.current_password, user.credential_hash
     ):

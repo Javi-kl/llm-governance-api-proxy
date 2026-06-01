@@ -1,3 +1,6 @@
+"""Dependencias FastAPI: auth_dep extrae el usuario del JWT en cookie;
+require_admin añade verificación de rol."""
+
 import logging
 
 import jwt
@@ -38,7 +41,6 @@ def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 def require_admin(request: Request, db: Session = Depends(get_db)) -> User:
-    """Autentica solo admins."""
     user = auth_dep(request, db)
     if user.role != enums.UserRole.ADMIN:
         raise exceptions.PermissionDeniedError()  # 403

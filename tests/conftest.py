@@ -8,7 +8,8 @@ from limits.storage.memory import MemoryStorage
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core import security, config
+import app.db.models  # noqa: F401
+from app.core import config, security
 from app.core.enums import UserRole
 from app.core.rate_limit import limiter
 from app.db.database import Base, get_db

@@ -1,8 +1,8 @@
-"""Servicio de auditoría — persiste y consulta metadatos de solicitudes.
+"""Servicio de auditoría del proxy.
 
-Depende del repositorio audit_logs y de los schemas admin para tipar
-las respuestas. No contiene lógica de negocio — solo orquesta el
-acceso a datos y la transformación a schemas.
+Registra y consulta metadatos de solicitudes sin almacenar prompts
+ni respuestas del proveedor LLM.
+Genera informes agregados de cumplimiento.
 """
 
 from collections import Counter
@@ -19,7 +19,7 @@ from app.schemas.admin import (
 )
 
 
-def registrar_log(
+def register_log(
     request_id: str,
     user_id: int,
     provider: str,
@@ -30,7 +30,6 @@ def registrar_log(
     status: str,
     db: Session,
 ) -> AuditLogResponse:
-    """Persiste un registro de auditoría y lo devuelve como schema."""
     log = audit_logs.create(
         request_id=request_id,
         user_id=user_id,
@@ -45,17 +44,16 @@ def registrar_log(
     return AuditLogResponse.model_validate(log)
 
 
-def listar_logs(filtro: AuditLogFilter, db: Session) -> AuditLogListResponse:
-    """Consulta logs con filtros y paginación."""
-    offset = (filtro.page - 1) * filtro.page_size
+def list_logs(filter_: AuditLogFilter, db: Session) -> AuditLogListResponse:
+    offset = (filter_.page - 1) * filter_.page_size
     items, total = audit_logs.list_logs(
         db=db,
-        action=filtro.action,
-        user_id=filtro.user_id,
-        date_from=filtro.date_from,
-        date_to=filtro.date_to,
+        action=filter_.action,
+        user_id=filter_.user_id,
+        date_from=filter_.date_from,
+        date_to=filter_.date_to,
         offset=offset,
-        limit=filtro.page_size,
+        limit=filter_.page_size,
     )
     return AuditLogListResponse(
         items=[AuditLogResponse.model_validate(i) for i in items],
@@ -63,12 +61,11 @@ def listar_logs(filtro: AuditLogFilter, db: Session) -> AuditLogListResponse:
     )
 
 
-def generar_informe(
+def generate_report(
     db: Session,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> ComplianceReport:
-    """Genera un informe de cumplimiento agregado para el rango de fechas."""
     total = audit_logs.count_in_range(db, date_from, date_to)
     by_action = {
         "allow": 0,
@@ -78,10 +75,10 @@ def generar_informe(
     }
     by_action.update(audit_logs.count_by_action(db, date_from, date_to))
 
-    todas = audit_logs.get_all_detected_categories(db, date_from, date_to)
+    all_categories = audit_logs.get_all_detected_categories(db, date_from, date_to)
     counter: Counter[str] = Counter()
-    for lista in todas:
-        counter.update(lista)
+    for entry in all_categories:
+        counter.update(entry)
     top_5 = [cat for cat, _ in counter.most_common(5)]
 
     return ComplianceReport(

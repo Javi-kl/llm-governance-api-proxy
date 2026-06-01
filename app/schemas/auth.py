@@ -3,8 +3,6 @@ from app.core import security
 
 
 class LoginRequest(BaseModel):
-    """Schema para el body del endpoint de login unificado."""
-
     username: str
     credential: str
 

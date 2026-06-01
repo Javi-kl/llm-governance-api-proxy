@@ -1,3 +1,6 @@
+"""Crea el admin inicial si no existe en BD,
+usando BOOTSTRAP_ADMIN_PASSWORD."""
+
 import logging
 
 from pydantic import SecretStr
@@ -11,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def bootstrap_admin(db: Session, password: SecretStr) -> None:
-    """Crea el primer admin si no existe."""
     if users.exists_admin(db):
         return
 

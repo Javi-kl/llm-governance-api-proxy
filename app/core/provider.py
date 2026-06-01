@@ -1,8 +1,7 @@
-"""Cliente HTTP al proveedor LLM externo (ADR-7).
+"""Cliente HTTP del proveedor LLM configurado.
 
-Envía el prompt (ya procesado por el detector/policy) al LLM configurado
-y devuelve la respuesta generada. Un único proveedor configurado por
-variables de entorno — el cliente no elige proveedor en la petición.
+Envía prompts procesados al endpoint compatible con chat completions.
+Traduce timeouts, errores HTTP y respuestas malformadas a errores de dominio.
 """
 
 import httpx
@@ -11,8 +10,7 @@ from app.core.config import get_settings
 from app.core.exceptions import ProviderError, ProviderTimeoutError
 
 
-def enviar(prompt: str) -> str:
-    """Envía el prompt al LLM y devuelve el texto generado."""
+def send(prompt: str) -> str:
     settings = get_settings()
     body = {
         "model": settings.LLM_MODEL,

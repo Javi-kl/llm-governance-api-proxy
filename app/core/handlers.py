@@ -1,3 +1,6 @@
+"""Traduce excepciones de dominio y errores de Pydantic
+a respuestas HTTP con el envelope RF-8."""
+
 import logging
 
 from fastapi import FastAPI, Request
