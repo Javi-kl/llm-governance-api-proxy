@@ -7,9 +7,8 @@ from fastapi.testclient import TestClient
 from limits.storage.memory import MemoryStorage
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.core import security
+from app.core import security, config
 from app.core.enums import UserRole
 from app.core.rate_limit import limiter
 from app.db.database import Base, get_db
@@ -17,13 +16,14 @@ from app.db.models.user import User
 from app.main import app
 from app.repositories import users
 
-# Engine de test: SQLite en memoria compartido entre threads
-test_engine = create_engine(
-    "sqlite:///:memory:",
-    echo=False,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# Engine de test: PostgreSQL (TEST_DATABASE_URL).
+_test_db_url = config.get_settings().TEST_DATABASE_URL
+if not _test_db_url:
+    raise RuntimeError(
+        "TEST_DATABASE_URL no está configurada. "
+        "Defínela en .env."
+    )
+test_engine = create_engine(_test_db_url, echo=False)
 TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
 
 
@@ -38,11 +38,16 @@ def reset_rate_limiter() -> Generator[None, None, None]:
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    """Crea tablas en SQLite -> devuelve una sesión limpia -> borra las tablas."""
-    Base.metadata.create_all(bind=test_engine)
-    session = TestSessionLocal()
-    yield session
     Base.metadata.drop_all(bind=test_engine)
+    Base.metadata.create_all(bind=test_engine)
+
+    session = TestSessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+        Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture

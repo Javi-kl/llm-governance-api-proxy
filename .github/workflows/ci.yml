@@ -7,8 +7,44 @@ on:
     branches: [main, develop]
 
 jobs:
-  test:
+  static-analysis:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run Ruff
+        run: ruff check .
+
+      - name: Run Pyright
+        run: pyright
+
+  
+  postgres_test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: proxy_db_user
+          POSTGRES_PASSWORD: proxy_db_pass
+          POSTGRES_DB: proxy_db_test  
+        options: >-
+          --health-cmd "pg_isready -U proxy_db_user -d proxy_db_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout code
@@ -25,7 +61,10 @@ jobs:
       - name: Run tests
         run: pytest
         env:
-          DATABASE_URL: "sqlite:///unused-but-required-by-pydantic"
+          # DATABASE_URL: requerida por app/db/database.py al importarse durante tests.
+          # TEST_DATABASE_URL: usada por tests/conftest.py como engine de test.
+          DATABASE_URL: postgresql://proxy_db_user:proxy_db_pass@localhost:5432/proxy_db_test
+          TEST_DATABASE_URL: postgresql://proxy_db_user:proxy_db_pass@localhost:5432/proxy_db_test
           SECRET_KEY: ci-test-secret-key-do-not-use-in-prod-abc1234567890
           ALGORITHM: HS256
           COOKIE_SECURE: "0"

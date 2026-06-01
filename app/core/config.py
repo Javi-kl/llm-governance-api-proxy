@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # Base de datos
     DATABASE_URL: str
+    TEST_DATABASE_URL: str = ""
 
     # JWT
     SECRET_KEY: SecretStr
@@ -24,7 +25,7 @@ class Settings(BaseSettings):
     LLM_BASE_URL: HttpUrl
     LLM_MODEL: str = ""
     LLM_PROVIDER_TIMEOUT: int = 30
-    
+
     # Bootstrap admin
     BOOTSTRAP_ADMIN_PASSWORD: SecretStr = SecretStr("")
 
