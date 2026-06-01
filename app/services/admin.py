@@ -24,7 +24,6 @@ def register(user_data: UserCreate, db: Session) -> UserResponse:
 
 
 def list_users(db: Session, offset: int = 0, limit: int = 50) -> UserListResponse:
-    """Lista usuarios normales con paginación."""
     result_users, total = users.get_all_normal_users(db, offset=offset, limit=limit)
     return UserListResponse(
         items=[UserResponse.model_validate(u) for u in result_users],
@@ -45,8 +44,6 @@ def reset_user_pin(user_id: int, user_pin: UserPinResetRequest, db: Session) -> 
 
 
 def _get_normal_active_user_or_raise(user_id: int, db: Session) -> User:
-    """Devuelve un usuario normal y activo. Lanza si no existe, es admin o está inactivo."""
-
     user = users.get_by_id(user_id, db)
     if not user:
         raise exceptions.UserNotFoundError(user_id)

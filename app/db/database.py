@@ -16,7 +16,7 @@ class Base(DeclarativeBase):
 
 
 def get_db() -> Generator[Session, None, None]:
-    """Sesión para Depends() en rutas."""
+    """Abre una sesión por request; confirma al finalizar o revierte si hay excepción."""
     db: Session = SessionLocal()
     try:
         yield db  # ← ruta inserta, actualiza..

@@ -1,8 +1,8 @@
-"""Servicio de auditoría — persiste y consulta metadatos de solicitudes.
+"""Servicio de auditoría del proxy.
 
-Depende del repositorio audit_logs y de los schemas admin para tipar
-las respuestas. No contiene lógica de negocio — solo orquesta el
-acceso a datos y la transformación a schemas.
+Registra y consulta metadatos de solicitudes sin almacenar prompts
+ni respuestas del proveedor LLM.
+Genera informes agregados de cumplimiento.
 """
 
 from collections import Counter
@@ -30,7 +30,6 @@ def registrar_log(
     status: str,
     db: Session,
 ) -> AuditLogResponse:
-    """Persiste un registro de auditoría y lo devuelve como schema."""
     log = audit_logs.create(
         request_id=request_id,
         user_id=user_id,
@@ -46,7 +45,6 @@ def registrar_log(
 
 
 def listar_logs(filtro: AuditLogFilter, db: Session) -> AuditLogListResponse:
-    """Consulta logs con filtros y paginación."""
     offset = (filtro.page - 1) * filtro.page_size
     items, total = audit_logs.list_logs(
         db=db,
@@ -68,7 +66,6 @@ def generar_informe(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> ComplianceReport:
-    """Genera un informe de cumplimiento agregado para el rango de fechas."""
     total = audit_logs.count_in_range(db, date_from, date_to)
     by_action = {
         "allow": 0,

@@ -1,3 +1,9 @@
+"""
+Primitivas criptográficas del sistema.
+Crea access tokens JWT, genera refresh tokens aleatorios, hashea credenciales
+con Argon2id y valida fortaleza de contraseñas y PINs.
+"""
+
 import hashlib
 import re
 import secrets

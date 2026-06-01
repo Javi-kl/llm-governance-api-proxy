@@ -49,7 +49,6 @@ def reset_user_pin(user: User, pin_hash: str, db: Session) -> None:
 def get_all_normal_users(
     db: Session, offset: int = 0, limit: int = 50
 ) -> tuple[Sequence[User], int]:
-    """Devuelve usuarios con role=USER y el total. Soporta paginación."""
     base_query = select(User).where(User.role == UserRole.USER)
 
     total = db.execute(

@@ -28,7 +28,7 @@ def login(
     response: Response,
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
-    """Login unificado para usuarios normales y administradores."""
+
     settings = config.get_settings()
     access_token, refresh_token = auth.login(login_data, db)
 
@@ -66,7 +66,7 @@ def refresh_token(
     response: Response,
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
-    """Renueva el par de tokens usando el refresh token de la cookie."""
+
     settings = config.get_settings()
     refresh_token_value = request.cookies.get("refresh_token")
 

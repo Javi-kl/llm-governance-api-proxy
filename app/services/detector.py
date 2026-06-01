@@ -1,16 +1,8 @@
-"""Detector de datos sensibles mediante regex + validación algorítmica.
+"""Detección de datos sensibles en prompts.
 
-Catálogo MVP (8 patrones, 3 categorías):
-| Patrón   | Categoría       | Regex | Validación | Exc. contexto         |
-|----------|-----------------|-------|-----------|-----------------------|
-| DNI      | IDENTIFICACION  | Sí    | — (Fase 2)| —                     |
-| NIF      | IDENTIFICACION  | Sí    | — (Fase 2)| —                     |
-| CIF      | IDENTIFICACION  | Sí    | — (Fase 2)| —                     |
-| email    | CONTACTO        | Sí    | —         | —                     |
-| teléfono | CONTACTO        | Sí    | —         | pedido, factura...    |
-| cp       | CONTACTO        | Sí    | —         | — (prefijo en regex)  |
-| iban     | FINANCIERO      | Sí    | MOD 97    | —                     |
-| tarjeta  | FINANCIERO      | Sí    | Luhn      | —                     |
+Escanea texto con patrones regex y validadores específicos.
+Agrupa detecciones por categoría de riesgo para que policy.py decida
+si permitir, enmascarar o bloquear la solicitud.
 """
 
 import re
@@ -73,7 +65,6 @@ _CIF_REGEX = r"\b[A-HJ-NP-SUVW]\d{7}[A-Z0-9]\b"
 
 
 def _es_contexto_negativo(texto: str, match_start: int, prefixes: list[str]) -> bool:
-    """Comprueba si el match está precedido por alguna palabra de exclusión."""
     preceding = texto[:match_start].lower()
     if not preceding:
         return False
@@ -148,7 +139,6 @@ _PATRONES: list[_Patron] = [
 
 
 def analizar(prompt: str) -> list[Detection]:
-    """Escanea el prompt en busca de datos sensibles."""
     detections: list[Detection] = []
 
     for patron in _PATRONES:

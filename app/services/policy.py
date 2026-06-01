@@ -1,12 +1,8 @@
-"""Política de gobernanza — decide la acción para un conjunto de categorías
-y aplica el enmascarado cuando la acción es MASK.
+"""Política de gobernanza para prompts detectados.
 
-Mapeo (RF-3):
-- IDENTIFICACION → MASK
-- CONTACTO       → MASK
-- FINANCIERO     → BLOCK
-
-Prioridad: BLOCK > MASK > ALLOW (ADR-3).
+Convierte categorías sensibles en una acción: allow, mask o block.
+La prioridad es block > mask > allow.
+También aplica el enmascarado de valores detectados.
 """
 
 from app.core.enums import PolicyAction, SensitiveCategory

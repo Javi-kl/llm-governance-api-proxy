@@ -5,8 +5,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Configuración de la aplicación cargada desde variables de entorno."""
-
     # Base de datos
     DATABASE_URL: str
     TEST_DATABASE_URL: str = ""
@@ -34,5 +32,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Cacheado tras la primera llamada."""
     return Settings()  # type: ignore[call-arg]

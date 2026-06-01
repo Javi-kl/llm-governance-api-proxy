@@ -1,3 +1,5 @@
+"""Configuración compartida de SlowAPI y respuesta 429 estándar."""
+
 import logging
 
 from fastapi import Request, Response

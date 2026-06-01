@@ -1,3 +1,10 @@
+"""Consultas de persistencia para audit_logs.
+
+Centraliza inserción, filtrado, agregaciones y limpieza de retención
+sobre los metadatos de auditoría del proxy. No debe guardar prompts
+ni respuestas del proveedor LLM.
+"""
+
 from datetime import datetime, timedelta
 from typing import Sequence
 
@@ -18,7 +25,7 @@ def create(
     status: str,
     db: Session,
 ) -> AuditLog:
-    """Persiste un registro de auditoría. Sigue el patrón de users.create()."""
+
     log = AuditLog(
         request_id=request_id,
         user_id=user_id,
@@ -43,12 +50,7 @@ def list_logs(
     offset: int = 0,
     limit: int = 50,
 ) -> tuple[Sequence[AuditLog], int]:
-    """
-    Lista logs de auditoría con filtros opcionales y paginación.
-    Sigue el patrón de users.get_all_normal_users():
-    query base → .where() condicionales → subquery para count → offset/limit.
-    Orden: timestamp descendente (más recientes primero).
-    """
+
     base_query = select(AuditLog)
     if action is not None:
         base_query = base_query.where(AuditLog.action == action)
@@ -95,7 +97,7 @@ def count_in_range(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> int:
-    """Cuenta el total de registros en el rango de fechas."""
+
     base = select(func.count()).select_from(AuditLog)
     if date_from is not None:
         base = base.where(AuditLog.timestamp >= date_from)
@@ -109,7 +111,7 @@ def count_by_action(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> dict[str, int]:
-    """Cuenta registros agrupados por acción en el rango de fechas."""
+
     stmt = select(AuditLog.action, func.count().label("total")).group_by(
         AuditLog.action
     )
@@ -126,7 +128,7 @@ def get_all_detected_categories(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
 ) -> list[list[str]]:
-    """Obtiene todas las listas de categorías detectadas en el rango."""
+
     stmt = select(AuditLog.detected_categories)
     if date_from is not None:
         stmt = stmt.where(AuditLog.timestamp >= date_from)
