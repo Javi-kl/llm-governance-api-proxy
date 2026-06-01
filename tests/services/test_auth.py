@@ -1,5 +1,6 @@
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
 from sqlalchemy.orm import Session
 
 from app.core import security
@@ -146,6 +147,7 @@ def test_given_revoked_refresh_token_then_raises_invalid_credentials(
     token = _create_refresh_token_for_user(regular_user, db_session)
 
     stored = refresh_repo.get_by_hash(security.hash_token(token), db_session)
+    assert stored is not None
     refresh_repo.revoke(stored, db_session)
     db_session.commit()
 
