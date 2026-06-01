@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.core.exceptions import ProviderError, ProviderTimeoutError
 
 
-def enviar(prompt: str) -> str:
+def send(prompt: str) -> str:
     settings = get_settings()
     body = {
         "model": settings.LLM_MODEL,

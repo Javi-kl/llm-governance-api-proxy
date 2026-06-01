@@ -24,7 +24,7 @@ class Detection:
 
 
 @dataclass
-class _Patron:
+class _Pattern:
     """Patrón de detección interno."""
 
     name: str
@@ -38,8 +38,8 @@ class _Patron:
 
 _DNI_REGEX = r"(?<!\d)\d{8}[A-HJ-NP-TV-Z](?!\d)"
 _EMAIL_REGEX = r"\b[\w\.-]+@[\w\.-]+\.\w{2,}\b"
-_TELEFONO_REGEX = r"(?<!\d)[6-9]\d{8}(?!\d)"
-_TELEFONO_EXCLUIR = [
+_PHONE_REGEX = r"(?<!\d)[6-9]\d{8}(?!\d)"
+_PHONE_EXCLUSIONS = [
     "pedido",
     "factura",
     "ref",
@@ -52,7 +52,7 @@ _TELEFONO_EXCLUIR = [
     "ticket",
 ]
 _IBAN_REGEX = r"\b[A-Z]{2}\d{2}(?:[\s-]?[A-Z0-9]){11,30}\b"
-_TARJETA_REGEX = r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"
+_CARD_REGEX = r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"
 _CP_REGEX = (
     r"\b(?:CP|código\s+postal|cód\.\s*postal|codigo\s+postal)"
     r"\s*[:#.-]?\s*\d{5}\b"
@@ -64,39 +64,39 @@ _CIF_REGEX = r"\b[A-HJ-NP-SUVW]\d{7}[A-Z0-9]\b"
 # ── Helpers internos ───────────────────────────────────────
 
 
-def _es_contexto_negativo(texto: str, match_start: int, prefixes: list[str]) -> bool:
-    preceding = texto[:match_start].lower()
+def _is_negative_context(text: str, match_start: int, prefixes: list[str]) -> bool:
+    preceding = text[:match_start].lower()
     if not preceding:
         return False
     for prefix in prefixes:
-        patron = rf"(?:^|\s){re.escape(prefix.lower())}[\s:.#-]*$"
-        if re.search(patron, preceding):
+        pattern = rf"(?:^|\s){re.escape(prefix.lower())}[\s:.#-]*$"
+        if re.search(pattern, preceding):
             return True
     return False
 
 
-def _validar_iban(valor: str) -> bool:
+def _validate_iban(value: str) -> bool:
     """Valida un IBAN mediante el algoritmo MOD 97."""
-    iban = re.sub(r"[\s-]", "", valor).upper()
+    iban = re.sub(r"[\s-]", "", value).upper()
     if len(iban) < 15:
         return False
-    reordenado = iban[4:] + iban[:4]
-    digitos = ""
-    for c in reordenado:
+    rearranged = iban[4:] + iban[:4]
+    digits = ""
+    for c in rearranged:
         if c.isalpha():
-            digitos += str(ord(c) - 55)
+            digits += str(ord(c) - 55)
         else:
-            digitos += c
-    return int(digitos) % 97 == 1
+            digits += c
+    return int(digits) % 97 == 1
 
 
-def _validar_luhn(valor: str) -> bool:
+def _validate_luhn(value: str) -> bool:
     """Valida un número de tarjeta mediante el algoritmo de Luhn (MOD 10)."""
-    digitos = re.sub(r"[\s-]", "", valor)
-    if not digitos.isdigit() or len(digitos) < 13:
+    digits = re.sub(r"[\s-]", "", value)
+    if not digits.isdigit() or len(digits) < 13:
         return False
     total = 0
-    for i, char in enumerate(reversed(digitos)):
+    for i, char in enumerate(reversed(digits)):
         d = int(char)
         if i % 2 == 1:
             d *= 2
@@ -108,51 +108,51 @@ def _validar_luhn(valor: str) -> bool:
 
 # ── Lista de patrones ──────────────────────────────────────
 
-_PATRONES: list[_Patron] = [
-    _Patron("DNI", SensitiveCategory.IDENTIFICACION, _DNI_REGEX),
-    _Patron("NIF", SensitiveCategory.IDENTIFICACION, _NIF_REGEX),
-    _Patron("CIF", SensitiveCategory.IDENTIFICACION, _CIF_REGEX),
-    _Patron("email", SensitiveCategory.CONTACTO, _EMAIL_REGEX),
-    _Patron(
-        "telefono",
-        SensitiveCategory.CONTACTO,
-        _TELEFONO_REGEX,
-        negative_prefixes=_TELEFONO_EXCLUIR,
+_PATTERNS: list[_Pattern] = [
+    _Pattern("DNI", SensitiveCategory.IDENTIFICATION, _DNI_REGEX),
+    _Pattern("NIF", SensitiveCategory.IDENTIFICATION, _NIF_REGEX),
+    _Pattern("CIF", SensitiveCategory.IDENTIFICATION, _CIF_REGEX),
+    _Pattern("email", SensitiveCategory.CONTACT, _EMAIL_REGEX),
+    _Pattern(
+        "phone",
+        SensitiveCategory.CONTACT,
+        _PHONE_REGEX,
+        negative_prefixes=_PHONE_EXCLUSIONS,
     ),
-    _Patron(
+    _Pattern(
         "iban",
-        SensitiveCategory.FINANCIERO,
+        SensitiveCategory.FINANCIAL,
         _IBAN_REGEX,
-        validator=_validar_iban,
+        validator=_validate_iban,
     ),
-    _Patron(
-        "tarjeta",
-        SensitiveCategory.FINANCIERO,
-        _TARJETA_REGEX,
-        validator=_validar_luhn,
+    _Pattern(
+        "card",
+        SensitiveCategory.FINANCIAL,
+        _CARD_REGEX,
+        validator=_validate_luhn,
     ),
-    _Patron("cp", SensitiveCategory.CONTACTO, _CP_REGEX),
+    _Pattern("cp", SensitiveCategory.CONTACT, _CP_REGEX),
 ]
 
 
 # ── Función pública ────────────────────────────────────────
 
 
-def analizar(prompt: str) -> list[Detection]:
+def analyze(prompt: str) -> list[Detection]:
     detections: list[Detection] = []
 
-    for patron in _PATRONES:
-        for match in re.finditer(patron.regex, prompt):
-            if patron.negative_prefixes and _es_contexto_negativo(
-                prompt, match.start(), patron.negative_prefixes
+    for pattern in _PATTERNS:
+        for match in re.finditer(pattern.regex, prompt):
+            if pattern.negative_prefixes and _is_negative_context(
+                prompt, match.start(), pattern.negative_prefixes
             ):
                 continue
-            if patron.validator and not patron.validator(match.group()):
+            if pattern.validator and not pattern.validator(match.group()):
                 continue
             detections.append(
                 Detection(
-                    category=patron.category,
-                    pattern_name=patron.name,
+                    category=pattern.category,
+                    pattern_name=pattern.name,
                     match=match.group(),
                     start=match.start(),
                     end=match.end(),

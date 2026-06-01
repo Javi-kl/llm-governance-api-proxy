@@ -7,9 +7,9 @@ class UserRole(str, enum.Enum):
 
 
 class SensitiveCategory(str, enum.Enum):
-    IDENTIFICACION = "identificacion"
-    CONTACTO = "contacto"
-    FINANCIERO = "financiero"
+    IDENTIFICATION = "identificacion"
+    CONTACT = "contacto"
+    FINANCIAL = "financiero"
 
 
 class PolicyAction(str, enum.Enum):

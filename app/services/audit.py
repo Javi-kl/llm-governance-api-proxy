@@ -19,7 +19,7 @@ from app.schemas.admin import (
 )
 
 
-def registrar_log(
+def register_log(
     request_id: str,
     user_id: int,
     provider: str,
@@ -44,16 +44,16 @@ def registrar_log(
     return AuditLogResponse.model_validate(log)
 
 
-def listar_logs(filtro: AuditLogFilter, db: Session) -> AuditLogListResponse:
-    offset = (filtro.page - 1) * filtro.page_size
+def list_logs(filter_: AuditLogFilter, db: Session) -> AuditLogListResponse:
+    offset = (filter_.page - 1) * filter_.page_size
     items, total = audit_logs.list_logs(
         db=db,
-        action=filtro.action,
-        user_id=filtro.user_id,
-        date_from=filtro.date_from,
-        date_to=filtro.date_to,
+        action=filter_.action,
+        user_id=filter_.user_id,
+        date_from=filter_.date_from,
+        date_to=filter_.date_to,
         offset=offset,
-        limit=filtro.page_size,
+        limit=filter_.page_size,
     )
     return AuditLogListResponse(
         items=[AuditLogResponse.model_validate(i) for i in items],
@@ -61,7 +61,7 @@ def listar_logs(filtro: AuditLogFilter, db: Session) -> AuditLogListResponse:
     )
 
 
-def generar_informe(
+def generate_report(
     db: Session,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -75,10 +75,10 @@ def generar_informe(
     }
     by_action.update(audit_logs.count_by_action(db, date_from, date_to))
 
-    todas = audit_logs.get_all_detected_categories(db, date_from, date_to)
+    all_categories = audit_logs.get_all_detected_categories(db, date_from, date_to)
     counter: Counter[str] = Counter()
-    for lista in todas:
-        counter.update(lista)
+    for entry in all_categories:
+        counter.update(entry)
     top_5 = [cat for cat, _ in counter.most_common(5)]
 
     return ComplianceReport(

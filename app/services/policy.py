@@ -10,35 +10,35 @@ from app.services.detector import Detection
 
 # ── Marcadores por tipo de patrón ──────────────────────────
 
-_MARCADORES: dict[str, str] = {
+_MARKERS: dict[str, str] = {
     "DNI": "[DNI/NIF]",
     "NIF": "[DNI/NIF]",
     "CIF": "[DNI/NIF]",
     "email": "[EMAIL]",
-    "telefono": "[TELEFONO]",
+    "phone": "[TELEFONO]",
     "cp": "[CP]",
     "iban": "[IBAN]",
-    "tarjeta": "[TARJETA]",
+    "card": "[TARJETA]",
 }
 
 
 # ── Funciones públicas ─────────────────────────────────────
 
 
-def evaluar(categorias: list[SensitiveCategory]) -> PolicyAction:
-    if not categorias:
+def evaluate(categories: list[SensitiveCategory]) -> PolicyAction:
+    if not categories:
         return PolicyAction.ALLOW
-    if SensitiveCategory.FINANCIERO in categorias:
+    if SensitiveCategory.FINANCIAL in categories:
         return PolicyAction.BLOCK
     return PolicyAction.MASK
 
 
-def enmascarar(prompt: str, detections: list[Detection]) -> str:
+def mask_values(prompt: str, detections: list[Detection]) -> str:
     """Procesa de derecha a izquierda para que las posiciones de las
     detecciones anteriores no se desplacen al modificar el prompt.
     """
-    resultado = prompt
+    result = prompt
     for d in sorted(detections, key=lambda d: d.start, reverse=True):
-        marcador = _MARCADORES[d.pattern_name]
-        resultado = resultado[: d.start] + marcador + resultado[d.end :]
-    return resultado
+        marker = _MARKERS[d.pattern_name]
+        result = result[: d.start] + marker + result[d.end :]
+    return result
