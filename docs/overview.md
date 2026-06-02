@@ -21,7 +21,7 @@ Un proxy local que:
 
 ## Alcance del MVP
 
-- Proxy API con endpoint `/api/v1/chat` y endpoint compatible OpenAI `/v1/chat/completions`
+- Proxy API con endpoint `/api/v1/chat` (multi-turn, contrato propio). El endpoint compatible OpenAI queda en Beta
 - Detección por regex de 3 categorías: identificación, contacto, financiero
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
@@ -44,7 +44,7 @@ Un proxy local que:
 ## Roadmap
 
 ### MVP
-- [ ] Proxy API funcional con endpoint /chat
+- [ ] Proxy API funcional con endpoint /api/v1/chat
 - [ ] Detección regex de 3 categorías (identificación, contacto, financiero)
 - [ ] Política mask/block por categoría
 - [X] Autenticación (PIN user, password admin)
@@ -54,13 +54,12 @@ Un proxy local que:
 - [X] Health check y rate limit en login
 - [ ] Informe de cumplimiento
 - [ ] UI vanilla (chat + panel admin)
-- [ ] Compatibilidad OpenAI API para integrar con Open WebUI
 - [ ] Docker Compose + .env.example
 
 ### Beta
 - [ ] Migrar detector a Presidio
 - [ ] Más categorías (salud, legal)
-- [ ] Persistencia de conversaciones
+- [ ] Compatibilidad OpenAI API para integrar con Open WebUI
 
 ### Producto
 - [ ] Multi-proveedor
