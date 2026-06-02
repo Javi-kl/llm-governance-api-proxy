@@ -17,6 +17,8 @@ _MARKERS: dict[str, str] = {
     "email": "[EMAIL]",
     "phone": "[TELEFONO]",
     "cp": "[CP]",
+    "iban": "[IBAN]",
+    "card": "[TARJETA]",
 }
 
 PRIVACY_SYSTEM_PROMPT = (
