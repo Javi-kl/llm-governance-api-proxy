@@ -17,10 +17,14 @@ _MARKERS: dict[str, str] = {
     "email": "[EMAIL]",
     "phone": "[TELEFONO]",
     "cp": "[CP]",
-    "iban": "[IBAN]",
-    "card": "[TARJETA]",
 }
 
+PRIVACY_SYSTEM_PROMPT = (
+    "Los marcadores [DNI/NIF], [EMAIL], [TELEFONO] y [CP] representan datos "
+    "personales reales que el usuario ha decidido compartir. Trátalos como "
+    "si fueran los valores originales y no solicites al usuario que los "
+    "proporcione o los modifique."
+)
 
 # ── Funciones públicas ─────────────────────────────────────
 
