@@ -1,6 +1,6 @@
 """Cliente HTTP del proveedor LLM configurado.
 
-Envía prompts procesados al endpoint compatible con chat completions.
+Envía el array de mensajes al endpoint de chat completions.
 Traduce timeouts, errores HTTP y respuestas malformadas a errores de dominio.
 """
 
@@ -10,11 +10,11 @@ from app.core.config import get_settings
 from app.core.exceptions import ProviderError, ProviderTimeoutError
 
 
-def send(prompt: str) -> str:
+def send(messages: list[dict[str, str]]) -> str:
     settings = get_settings()
     body = {
         "model": settings.LLM_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": messages,
     }
     headers = {
         "Authorization": f"Bearer {settings.LLM_API_KEY.get_secret_value()}",

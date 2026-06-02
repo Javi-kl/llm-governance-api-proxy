@@ -4,11 +4,13 @@
 **RF-1. Proxy API — Endpoint principal**
 - Historia: Como aplicación cliente, quiero enviar todas las solicitudes LLM a través del proxy para centralizar el control de uso en un único punto.
 Criterios de aceptación:
-- DADO QUE envío una solicitud autenticada con el campo prompt relleno, CUANDO el proxy la recibe, ENTONCES la reenvía al proveedor configurado y devuelve la respuesta generada.
-- DADO QUE el cuerpo de la solicitud está vacío o falta el campo prompt, CUANDO el proxy la recibe, ENTONCES devuelve error 422 con detalle del campo faltante.
+- DADO QUE envío una solicitud autenticada con el array `messages` relleno (al menos un mensaje con rol `user`), CUANDO el proxy la recibe, ENTONCES re-detecta el array completo, sanea los mensajes user que lo requieran, y reenvía al proveedor el array saneado devolviendo la respuesta generada.
+- DADO QUE el cuerpo de la solicitud está vacío o falta el campo `messages` o el array está vacío, CUANDO el proxy la recibe, ENTONCES devuelve error 422 con detalle del campo faltante.
+- DADO QUE el array `messages` no contiene ningún mensaje con rol `user`, CUANDO el proxy la recibe, ENTONCES devuelve error 422 indicando que se requiere al menos un mensaje de usuario.
 - DADO QUE la solicitud no incluye credenciales de autenticación, CUANDO el proxy la recibe, ENTONCES devuelve error 401.
 - DADO QUE el proveedor externo no responde en el tiempo límite configurado, CUANDO el proxy reenvía la solicitud, ENTONCES devuelve error 504 con un mensaje controlado, sin exponer detalles del proveedor.
-- DADO QUE envío una solicitud al endpoint `/v1/chat/completions` con formato OpenAI (campo `messages`), CUANDO el proxy la recibe, ENTONCES procesa cada mensaje igual que `/api/v1/chat` y devuelve la respuesta en formato compatible OpenAI.
+- DADO QUE la respuesta del proxy es `allow` o `mask`, CUANDO llega al cliente, ENTONCES la UI muestra la respuesta del LLM y guarda el turno (user + assistant) en `localStorage` para mantener historial entre requests.
+- DADO QUE la respuesta del proxy es `block`, CUANDO llega al cliente, ENTONCES la UI muestra un mensaje amigable y NO guarda el turno bloqueado en el historial.
 ---
 **RF-2. Detección de contenido sensible**
 - Historia: Como sistema, quiero inspeccionar el contenido textual de cada solicitud antes de enviarla al proveedor para detectar categorías sensibles definidas en el MVP.
@@ -45,10 +47,12 @@ contacto	|[EMAIL] o [TELEFONO]
 
 Regla de prioridad: si un prompt dispara varias categorías, gana la acción más restrictiva: block > mask > allow.
 Criterios de aceptación:
-- DADO QUE el prompt contiene un email y la política para contacto es mask, CUANDO el sistema evalúa, ENTONCES sustituye el email por [EMAIL], inyecta la instrucción de privacidad en el system prompt, y envía el prompt modificado al proveedor.
-- DADO QUE el prompt contiene un IBAN y la política para financiero es block, CUANDO el sistema evalúa, ENTONCES bloquea la solicitud sin enviarla al proveedor.
-- DADO QUE el prompt contiene un DNI (categoría mask) y un IBAN (categoría block), CUANDO el sistema evalúa, ENTONCES se aplica block por ser la acción más restrictiva.
-- DADO QUE el prompt no contiene ningún dato sensible, CUANDO el sistema evalúa, ENTONCES la acción resultante es allow — no se modifica ni bloquea nada.
+- DADO QUE el array `messages` contiene un email en un mensaje user y la política para contacto es mask, CUANDO el sistema evalúa, ENTONCES sustituye el email por [EMAIL] en el mensaje donde aparece, inyecta la instrucción de privacidad en el system prompt solo si hay detección, y re-envía el array completo saneado al proveedor.
+- DADO QUE el array `messages` contiene un dato sensible en un mensaje user NO terminal (turno anterior), CUANDO el sistema evalúa, ENTONCES lo enmascara también — la privacidad se aplica a todo el historial, no solo al último turno. Ver ADR-15.
+- DADO QUE el array `messages` contiene dato sensible solo en mensajes con rol `assistant` o `system`, CUANDO el sistema evalúa, ENTONCES no se enmascaran — la detección aplica únicamente a mensajes con rol `user`.
+- DADO QUE el array `messages` contiene un IBAN en un mensaje user y la política para financiero es block, CUANDO el sistema evalúa, ENTONCES bloquea la solicitud sin enviarla al proveedor.
+- DADO QUE el array contiene un DNI (categoría mask) y un IBAN (categoría block) en mensajes user, CUANDO el sistema evalúa, ENTONCES se aplica block por ser la acción más restrictiva.
+- DADO QUE el array no contiene ningún dato sensible en ningún mensaje user, CUANDO el sistema evalúa, ENTONCES la acción resultante es allow — no se modifica ni bloquea nada.
 - DADO QUE no hay ninguna categoría definida en la configuración, CUANDO el sistema arranca, ENTONCES falla con un error de configuración explícito.
 ---
 **RF-4. Respuesta estructurada del proxy**

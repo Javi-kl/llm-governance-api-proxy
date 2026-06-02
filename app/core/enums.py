@@ -18,3 +18,9 @@ class PolicyAction(str, enum.Enum):
     ALLOW = "allow"
     MASK = "mask"
     BLOCK = "block"
+
+
+class MessageRole(str, enum.Enum):
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"

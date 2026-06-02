@@ -25,15 +25,16 @@ Tres capas con responsabilidades estrictas:
 | **Auth** | Router + Service + Dependencies | Login con JWT, refresh, creación/desactivación de usuarios |
 | **Detector** | Service | Pipeline de 3 capas: regex endurecido → validación algorítmica (checksum) → exclusión por contexto negativo. Devuelve posiciones exactas de cada coincidencia para el enmascarado. Ver ADR-14. |
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
-| **Provider** | Service | Reenvía el prompt (original o enmascarado) al LLM externo |
-| **Chat** | Service + Router | Orquestador para ambos endpoints (`/api/v1/chat` y `/v1/chat/completions`): recibe prompt → detector → policy → provider → logger → respuesta |
+| **Provider** | Service | Reenvía el array `messages` saneado (con marcadores si hubo mask + system de privacidad) al LLM externo y devuelve la respuesta del assistant |
+| **Chat** | Service + Router | Orquestador para `/api/v1/chat`: recibe array `messages` → detector (re-detecta y sanea todo el array, no solo el último user) → policy → provider → logger → respuesta. Ver ADR-15. |
 | **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros, genera informe (RF-19) |
 | **Scheduler** | Core | APScheduler: ejecuta limpieza de retención cada 24h |
 
 ## Flujo de una solicitud
 ```
-Cliente
-  │  POST /api/v1/chat { prompt }
+UI vanilla (cliente autenticado)
+  │  POST /api/v1/chat { messages: [{role, content}, ...] }
+  │  (array completo, no solo el último turno)
   ▼
 ┌─────────────────────────────────┐
 │ Middleware                       │
@@ -42,43 +43,63 @@ Cliente
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
+│ Chat Service                     │
+│  Extrae array `messages`         │
+│  (validación: ≥1 mensaje user)   │
+└───────────────┬─────────────────┘
+                ▼
+┌─────────────────────────────────┐
 │ Detector                         │
-│  Regex scan del prompt           │
+│  Re-detecta y sanea TODOS los    │
+│  mensajes con rol `user` del     │
+│  array (no solo el último).      │
 │  → ["contacto"]                  │
+│  Ver ADR-15.                     │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
 │ Policy                           │
 │  contacto → mask                 │
 │  (block > mask > allow)          │
+│  Si mask: inyecta/actualiza      │
+│  system con instrucción de       │
+│  marcadores                      │
 └───┬──────────┬──────────┬───────┘
     ▼          ▼          ▼
   ALLOW      MASK       BLOCK
     │          │          │
     │     ┌────▼────┐     │
-    │     │Enmascara│     │
+    │     │Array    │     │
+    │     │saneado: │     │
     │     │[EMAIL]  │     │
     │     │+ system │     │
-    │     │ prompt  │     │
+    │     │ marker  │     │
     │     └────┬────┘     │
     ▼          ▼          │
 ┌─────────────────┐       │
 │ Provider         │       │
 │ POST → LLM API   │       │
+│ messages array   │       │
+│ (saneado, sin    │       │
+│  persistir nada) │       │
 │ ← respuesta      │       │
 └────────┬─────────┘       │
          ▼                 ▼
 ┌─────────────────────────────────┐
 │ Logger                           │
 │  INSERT audit_logs               │
-│  (request_id, user, action, ...) │
+│  (request_id, user, action,     │
+│   detected_categories, ...)      │
 │  SIN prompt ni respuesta         │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
 │ Respuesta JSON                   │
-│  { request_id, action, ... }    │
-│  Frontend decide qué mostrar     │
+│  { request_id, action,          │
+│    message, ... }                │
+│  UI guarda turno en localStorage│
+│  si allow/mask; no guarda       │
+│  si block.                       │
 └─────────────────────────────────┘
 ```
 
@@ -228,14 +249,6 @@ Cliente
 
 ---
 
-### ADR-10: Compatibilidad OpenAI API para Open WebUI
-
-**Qué:** El proxy expone `POST /v1/chat/completions` con el mismo formato que la API de OpenAI. Open WebUI se conecta al proxy como si fuera el proveedor real. El proxy intercepta, escanea, aplica política y reenvía al proveedor configurado.
-
-**Por qué:** Open WebUI es un frontend de chat profesional que las empresas ya usan. Implementar un chat desde cero (RF-10) cubre la demo mínima, pero conectar Open WebUI demuestra que el proxy funciona con herramientas reales sin fricción. El formato OpenAI es el estándar de facto — compatible también con AnythingLLM, LibreChat y otros clientes.
-
-**Trade-off:** Dos endpoints de chat que mantener (`/api/v1/chat` propio + `/v1/chat/completions` compatible). La lógica del proxy (detector, policy, provider, logger) es compartida — solo cambia el adaptador de entrada/salida.
-
 ---
 
 ### ADR-11: SlowAPI para rate limiting general
@@ -288,6 +301,16 @@ Los checksums son Python puro, sin dependencias externas — compatibles con ADR
 
 **Trade-off:** Checksums añaden < 0.1ms por validación. La exclusión contextual es frágil (depende de idioma y redacción): puede producir falsos negativos si el usuario escribe "mi pedido fue la tarjeta 4111...". Se acepta falso negativo > falso positivo
 para experiencia de usuario. CP solo con prefijo explícito sacrifica recall pero garantiza cero falsos positivos en importes y referencias. Dirección postal se pospone a Beta con NLP (ADR-8).
+
+---
+
+### ADR-15: Chat multi-turn con re-detección completa del array en cada request
+
+**Qué:** La UI envía el array completo `messages` en cada request al endpoint `/api/v1/chat`. El backend re-detecta y re-enmascara TODOS los mensajes con rol `user` del array, no solo el último turno. La UI es agnóstica a la detección.
+
+**Por qué:** Privacidad (GDPR Art. 25, 32) no se delega al cliente. El navegador no es perímetro de confianza: `localStorage` es editable con DevTools, y un cliente modificado podría reenviar mensajes originales sin enmascarar en turnos posteriores. Re-detección por regex es <1ms por mensaje, despreciable. Single source of truth en backend: la lógica de privacidad vive en el proxy, no en el frontend.
+
+**Trade-off:** CPU extra por request (~20ms para conversaciones de 20 mensajes). La detección NO se aplica a mensajes con rol `assistant` o `system`, solo a `user` — esto evita falsos positivos en respuestas generadas por el LLM. El historial de conversación lo mantiene el cliente en `localStorage` (no se persiste en backend), respetando RNF-3. Si la acción es `mask`, el backend inyecta/actualiza un mensaje `system` con la instrucción de privacidad sobre los marcadores `[EMAIL]`, `[DNI]`, `[TELEFONO]`, etc.
 
 ---
 
