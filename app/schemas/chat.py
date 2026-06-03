@@ -1,5 +1,3 @@
-"""Schemas del endpoint POST /api/v1/chat."""
-
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
