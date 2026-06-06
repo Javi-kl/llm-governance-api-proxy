@@ -13,6 +13,8 @@ from app.core.exceptions import (
     InvalidCredentialsError,
     PasswordReuseError,
     PermissionDeniedError,
+    ProviderError,
+    ProviderTimeoutError,
     UserAlreadyExistsError,
     UserNotFoundError,
 )
@@ -84,6 +86,26 @@ def register_exception_handlers(app: FastAPI) -> None:
             ErrorEnvelope(
                 code="USER_ALREADY_EXISTS",
                 message="Este username ya está registrado",
+            ),
+        )
+
+    @app.exception_handler(ProviderTimeoutError)
+    async def provider_timeout_handler(request: Request, exc: ProviderTimeoutError):
+        return error_response(
+            504,
+            ErrorEnvelope(
+                code="UPSTREAM_TIMEOUT",
+                message="El proveedor externo no respondió a tiempo",
+            ),
+        )
+
+    @app.exception_handler(ProviderError)
+    async def provider_error_handler(request: Request, exc: ProviderError):
+        return error_response(
+            502,
+            ErrorEnvelope(
+                code="UPSTREAM_ERROR",
+                message="Error del proveedor externo",
             ),
         )
 

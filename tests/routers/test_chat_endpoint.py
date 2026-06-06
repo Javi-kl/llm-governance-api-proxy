@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from app.core.exceptions import ProviderError, ProviderTimeoutError
 from app.db.models.user import User
 from app.services.policy import PRIVACY_SYSTEM_PROMPT
 from tests.conftest import create_token
@@ -101,3 +102,37 @@ def test_given_iban_in_message_then_returns_block(
     assert body["message"] is None
     assert body["detected_categories"] == ["financiero"]
     assert "financiero" in body["reason"]
+
+
+def test_given_provider_timeout_then_returns_504(
+    client: TestClient, regular_user: User
+):
+    """RF-8: timeout del proveedor externo → 504 + UPSTREAM_TIMEOUT."""
+    _login_as(client, regular_user)
+
+    with patch("app.services.chat.provider_send", side_effect=ProviderTimeoutError()):
+        response = client.post(
+            "/api/v1/chat",
+            json={"messages": [{"role": "user", "content": "¿Capital de Francia?"}]},
+        )
+
+    assert response.status_code == 504
+    body = response.json()
+    assert body["error"]["code"] == "UPSTREAM_TIMEOUT"
+    assert "proveedor" in body["error"]["message"].lower()
+
+
+def test_given_provider_error_then_returns_502(client: TestClient, regular_user: User):
+    """RF-8: error del proveedor externo → 502 + UPSTREAM_ERROR."""
+    _login_as(client, regular_user)
+
+    with patch("app.services.chat.provider_send", side_effect=ProviderError()):
+        response = client.post(
+            "/api/v1/chat",
+            json={"messages": [{"role": "user", "content": "¿Capital de Francia?"}]},
+        )
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["error"]["code"] == "UPSTREAM_ERROR"
+    assert "proveedor" in body["error"]["message"].lower()
