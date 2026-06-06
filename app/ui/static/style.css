@@ -1,0 +1,104 @@
+/* LLM Governance Proxy — Estilos base */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background-color: #f5f5f5;
+    color: #1a1a1a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+main {
+    width: 100%;
+}
+
+/* ── Login ──────────────────────────────────────────── */
+
+.login-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.login-container h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+}
+
+.login-form {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.375rem;
+    color: #4a4a4a;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.form-group input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.error-message {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 0.625rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    border: 1px solid #fecaca;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #ffffff;
+    background-color: #2563eb;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+}
+
+.btn-primary:active {
+    background-color: #1e40af;
+}

@@ -1,5 +1,9 @@
 """Dependencias FastAPI: auth_dep extrae el usuario del JWT en cookie;
-require_admin añade verificación de rol."""
+require_admin añade verificación de rol.
+
+get_user_from_request() es la función base reutilizable por contextos
+que no pueden usar Depends (Gradio, scripts, etc.).
+"""
 
 import logging
 
@@ -8,7 +12,7 @@ from fastapi import Depends, Request
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
-from app.core import config, exceptions, enums
+from app.core import config, enums, exceptions
 from app.db.database import get_db
 from app.db.models.user import User
 from app.repositories import users
@@ -16,7 +20,11 @@ from app.repositories import users
 logger = logging.getLogger("auth_service")
 
 
-def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
+def get_user_from_request(request: Request, db: Session) -> User:
+    """
+    Lanza InvalidCredentialsError si la cookie falta, el token es inválido,
+    el usuario no existe o está inactivo.
+    """
     token = request.cookies.get("access_token")
     if not token:
         logger.warning("Token no válido")
@@ -28,7 +36,6 @@ def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
             algorithms=[config.get_settings().ALGORITHM],
         )
         user_id = int(payload.get("sub", 0))
-
     except (InvalidTokenError, ValueError):
         raise exceptions.InvalidCredentialsError()
 
@@ -38,6 +45,11 @@ def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
         raise exceptions.InvalidCredentialsError()
 
     return user
+
+
+def auth_dep(request: Request, db: Session = Depends(get_db)) -> User:
+    """Dependencia FastAPI que reutiliza get_user_from_request."""
+    return get_user_from_request(request, db)
 
 
 def require_admin(request: Request, db: Session = Depends(get_db)) -> User:

@@ -1,10 +1,9 @@
-from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core import config
+from app.core.cookies import set_auth_cookies, clear_auth_cookies
 from app.core.rate_limit import limiter
 from app.db.database import get_db
 from app.db.models.user import User
@@ -29,29 +28,8 @@ def login(
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
 
-    settings = config.get_settings()
     access_token, refresh_token = auth.login(login_data, db)
-
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        max_age=int(
-            timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()
-        ),
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        path="/",
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        max_age=int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds()),
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        path="/api/v1/auth",
-    )
+    set_auth_cookies(response, access_token, refresh_token)
 
     return MessageResponse(message="login correcto")
 
@@ -67,31 +45,9 @@ def refresh_token(
     db: Annotated[Session, Depends(get_db)],
 ) -> MessageResponse:
 
-    settings = config.get_settings()
     refresh_token_value = request.cookies.get("refresh_token")
-
     new_access, new_refresh = auth.refresh(refresh_token_value, db)
-
-    response.set_cookie(
-        key="access_token",
-        value=new_access,
-        httponly=True,
-        max_age=int(
-            timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()
-        ),
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        path="/",
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh,
-        httponly=True,
-        max_age=int(timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds()),
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        path="/api/v1/auth",
-    )
+    set_auth_cookies(response, new_access, new_refresh)
 
     return MessageResponse(message="Tokens renovados correctamente")
 
@@ -125,13 +81,6 @@ def logout(
 ) -> MessageResponse:
     refresh_token_value = request.cookies.get("refresh_token")
 
-    response.delete_cookie(
-        key="access_token",
-        path="/",
-    )
-    response.delete_cookie(
-        key="refresh_token",
-        path="/api/v1/auth",
-    )
+    clear_auth_cookies(response)
     auth.logout(current_user, refresh_token_value, db)
     return MessageResponse(message="sesión cerrada")
