@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
+from app.core.rate_limit import limiter
 from app.core import config
 from app.core.cookies import set_auth_cookies
 from app.core.exceptions import InvalidCredentialsError
@@ -51,7 +52,6 @@ async def root(request: Request) -> RedirectResponse:
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request) -> HTMLResponse:
-    """Muestra el formulario de inicio de sesión."""
     return templates.TemplateResponse(
         request=request,
         name="login.html",
@@ -60,6 +60,7 @@ async def login_page(request: Request) -> HTMLResponse:
 
 
 @router.post("/login")
+@limiter.limit("5/5minute")
 async def login_post(
     request: Request,
     db: Session = Depends(get_db),
