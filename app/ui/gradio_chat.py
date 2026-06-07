@@ -71,28 +71,32 @@ def _chat_handler(message: str, history: list[dict], request: gr.Request) -> str
         logger.warning("Intento de chat sin usuario autenticado")
         return _AUTH_ERROR_MESSAGE
 
-    with get_db_context() as db:
-        user = users.get_by_id(int(request.username), db)
-        if user is None or not user.active:
-            logger.warning(
-                "Usuario %s no encontrado o inactivo en chat", request.username
-            )
-            return _AUTH_ERROR_MESSAGE
+    try:
+        with get_db_context() as db:
+            user = users.get_by_id(int(request.username), db)
+            if user is None or not user.active:
+                logger.warning(
+                    "Usuario %s no encontrado o inactivo en chat", request.username
+                )
+                return _AUTH_ERROR_MESSAGE
 
-        messages = _history_to_messages(message, history)
+            messages = _history_to_messages(message, history)
 
-        try:
-            response = process_chat(messages, user, db)
-        except (ProviderError, ProviderTimeoutError):
-            logger.exception(
-                "Error del proveedor en chat para usuario %s", user.username
-            )
-            return _PROVIDER_ERROR_MESSAGE
+            try:
+                response = process_chat(messages, user, db)
+            except (ProviderError, ProviderTimeoutError):
+                logger.exception(
+                    "Error del proveedor en chat para usuario %s", user.username
+                )
+                return _PROVIDER_ERROR_MESSAGE
 
-    if response.action == "block":
-        return _BLOCK_MESSAGE
+        if response.action == "block":
+            return _BLOCK_MESSAGE
 
-    return response.message.content if response.message else ""
+        return response.message.content if response.message else ""
+    except Exception:
+        logger.exception("Error inesperado procesando chat de Gradio")
+        return _PROVIDER_ERROR_MESSAGE
 
 
 def build_gradio_app() -> gr.Blocks:
