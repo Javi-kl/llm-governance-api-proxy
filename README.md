@@ -18,9 +18,10 @@
 
 1. Clona el repositorio
 2. Copia `.env.example` a `.env` y configura `LLM_API_KEY`
-3. `docker compose up`
-4. Backend: http://localhost:8000/docs (Swagger)
-5. Frontend: abre `frontend/` con Live Server o `python -m http.server 3000`
+3. Levanta PostgreSQL: `docker compose up -d db`
+4. Arranca el backend: `python -m uvicorn app.main:app --reload`
+5. UI web: http://localhost:8000
+6. Swagger: http://localhost:8000/docs
 
 ## Stack
 | Categoría | Tecnología |

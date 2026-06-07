@@ -10,7 +10,7 @@ Un proxy local que:
 - Detecta datos sensibles antes de enviarlos (DNI, email, IBAN, etc.)
 - Aplica políticas automáticas: enmascara o bloquea según la categoría
 - Registra metadatos de cada solicitud para auditoría (sin guardar el contenido)
-- Ofrece una UI web sencilla (chat + panel admin) y documentación Swagger
+- Ofrece una UI web ligera para login y chat demo, API REST para administración, y documentación Swagger
 
 ## Casos de uso cubiertos
 
@@ -26,7 +26,7 @@ Un proxy local que:
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
 - Bootstrap del primer admin al desplegar
-- Gestión de usuarios normales desde panel admin (crear, desactivar, resetear PIN). Un único admin; no se crean admins adicionales desde la interfaz.
+- Gestión de usuarios normales vía API de administración (crear, desactivar, resetear PIN). Un único admin; no se crean admins adicionales desde la interfaz.
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
 - Health check, rate limit en login, errores controlados
 - Informe de cumplimiento descargable para auditorías
@@ -49,11 +49,14 @@ Un proxy local que:
 - [ ] Política mask/block por categoría
 - [X] Autenticación (PIN user, password admin)
 - [X] Bootstrap del primer admin
-- [X] Gestión de usuarios normales desde panel admin (rol user únicamente)
+- [X] Gestión de usuarios normales vía API de administración (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [X] Health check y rate limit en login
 - [ ] Informe de cumplimiento
-- [ ] UI vanilla (chat + panel admin)
+- [X] Login web único en /login (Jinja2 + HTMX)
+- [ ] Redirección automática por rol tras login (user → /chat, admin → /dashboard)
+- [X] Chat demo Gradio en /chat (demo temporal)
+- [ ] Dashboard admin con enlaces a herramientas administrativas (Jinja2 + HTMX)
 - [ ] Docker Compose + .env.example
 
 ### Beta
@@ -72,19 +75,15 @@ Un proxy local que:
 ## Esqueleto
 
 ```text
-frontend/
-├── index.html          ← Login (dos secciones: user | admin)
-├── pages/
-│   ├── chat.html       ← Chat del usuario normal
-│   └── admin.html      ← Panel admin
-├── css/
-│   └── style.css       ← Estilos globales
-└── js/
-    ├── config.js       ← URL base de la API (/api/v1)
-    ├── api.js          ← Wrapper de fetch(): get(), post(), put(), del()
-    ├── auth.js         ← login(), logout(), checkSession()
-    ├── chat.js         ← Lógica del chat
-    └── admin.js        ← Lógica del panel admin
+app/ui/
+├── __init__.py          ← Inicializa el módulo de UI
+├── gradio_chat.py       ← Chat demo temporal con Gradio, montado en /chat
+├── templates.py         ← Configuración de Jinja2 (directorio de templates)
+├── templates/
+│   ├── base.html        ← Layout base HTML
+│   └── login.html       ← Página de login web (formulario HTMX)
+└── static/
+    └── style.css        ← Estilos globales
 
 app/
 ├── main.py              ← Crea la app, registra routers, arranca APScheduler
@@ -124,7 +123,7 @@ app/
 │   ├── chat_router.py   ← /api/v1/chat
 │   ├── admin_router.py  ← /api/v1/admin/*
 │   └── health_router.py ← /api/v1/health
-└── templates/           ← (vacío — el frontend se sirve aparte)
+└── templates/           ← (carpeta vacía — las plantillas web están en app/ui/templates/)
 
 tests/
 ├── conftest.py
@@ -139,5 +138,5 @@ scripts/
 └── entrypoint.sh        ← Migraciones + arranque uvicorn
 
 .env.example
-docker-compose.yml       ← proxy + PostgreSQL
+docker-compose.yml       ← PostgreSQL local de desarrollo
 ```

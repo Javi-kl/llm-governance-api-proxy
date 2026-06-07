@@ -32,7 +32,7 @@ Tres capas con responsabilidades estrictas:
 
 ## Flujo de una solicitud
 ```
-UI vanilla (cliente autenticado)
+Cliente (navegador, Gradio, OpenWebUI...)
   │  POST /api/v1/chat { messages: [{role, content}, ...] }
   │  (array completo, no solo el último turno)
   ▼
@@ -108,11 +108,12 @@ UI vanilla (cliente autenticado)
 
 ```
 ┌──────────────────────────────────────────────┐
-│  docker-compose.yml                          │
+│  Desarrollo local                            │
 │                                              │
 │  ┌──────────────────┐  ┌──────────────────┐ │
-│  │ proxy (uvicorn)  │  │ postgres:16      │ │
-│  │ puerto 8000      │──│ puerto 5432      │ │
+│  │ uvicorn local    │  │ postgres:16      │ │
+│  │ app.main:app     │──│ docker compose   │ │
+│  │ puerto 8000      │  │ puerto 5432      │ │
 │  │                  │  │                  │ │
 │  │ FastAPI +        │  │ DB: proxy_db     │ │
 │  │ APScheduler      │  │ Tablas: users,   │ │
@@ -126,9 +127,12 @@ UI vanilla (cliente autenticado)
 │                          └────────────────┘ │
 │                                              │
 │  ┌──────────────────┐                        │
-│  │ frontend/        │  ↔ fetch() a :8000   │
-│  │ HTML/CSS/JS      │    con CORS          │
-│  │ (Live Server)    │                        │
+│  │ Navegador        │  ↔ :8000              │
+│  │                  │                        │
+│  │ /          → redir│ (login/chat)          │
+│  │ /login     → login│ (Jinja2 + HTMX)       │
+│  │ /chat      → chat │ (Gradio demo)         │
+│  │ /api/v1/*  → REST │ (fetch/JSON)          │
 │  └──────────────────┘                        │
 └──────────────────────────────────────────────┘
 ```
@@ -159,13 +163,22 @@ UI vanilla (cliente autenticado)
 ---
 
 ## ADRs
-### ADR-1: Frontend vanilla JS
+### ADR-1: UI server-rendered ligera + chat demo temporal
 
-**Qué:** HTML, CSS y JS sin framework. Sin npm, sin build. Archivos estáticos servidos aparte del backend.
+**Qué:** Pantallas internas simples servidas por FastAPI con Jinja2 + HTMX (p.ej. raíz `/` como redirección y login web en `/login`). El chat de usuario se ofrece como demo temporal con Gradio montado en `/chat`. La API REST sigue siendo el núcleo del producto bajo `/api/v1/*`.
 
-**Por qué:** MVP pequeño (3 pantallas). `fetch()` a la API REST cubre toda la comunicación. Un framework añade complejidad que hoy no se necesita.
+**Por qué:** Para el MVP, Jinja2 + HTMX evita un build frontend separado y mantiene toda la lógica de sesión en el servidor (cookies HttpOnly). Gradio ofrece un chat funcional con ~10 líneas de integración, suficiente como demo mientras se evalúa OpenWebUI u otra UI definitiva. La API REST es independiente de la UI: cualquier cliente (Gradio, OpenWebUI, frontend estático futuro) se comunica por `/api/v1/*`.
 
-**Trade-off:** Sin componentes ni router. Si el proyecto crece a +10 pantallas, migrar a Vue/Svelte.
+**Decisiones tomadas:**
+- Login único en `/login`. Redirección automática por rol: `user` → `/chat`, `admin` → `/dashboard`. La seguridad reside en los roles y el middleware `require_admin`, no en duplicar pantallas de login. Ver RF-18.
+- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs, informe de cumplimiento). Implementación prevista con Jinja2 + HTMX, pendiente de construir.
+
+**Decisiones pendientes (no tomadas aún):**
+- Diseño concreto del dashboard admin (layout, navegación, componentes).
+- UI final para audit logs e informe de cumplimiento.
+- Integración definitiva con OpenWebUI como UI de chat definitiva.
+
+**Trade-off:** Gradio no implementa auto-refresh del access token — si el token expira durante una sesión de chat, el usuario debe reautenticarse manualmente (ver TD-003). Gradio es pesado (~150 MB en disco) para una demo temporal; aceptable porque se prevé reemplazarlo en Beta. Jinja2 + HTMX escala mal si el número de pantallas crece mucho, pero para login + admin básico es suficiente.
 
 ---
 
