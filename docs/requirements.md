@@ -120,7 +120,7 @@ Criterios de aceptación:
 ---
 **RF-15. Autenticación con PIN (user) y contraseña (admin)**
 - Historia: Como sistema, quiero autenticar a los usuarios normales mediante PIN numérico y a los administradores mediante contraseña robusta, adaptando el mecanismo al perfil de riesgo de cada rol.
-> Un único endpoint (POST /api/v1/auth/login) que recibe `username` + `credential`. El sistema **NO** pide el rol al cliente — el rol se determina por el usuario encontrado en la base de datos. Tanto users como admins comparten la misma tabla (`users`) diferenciados por el campo `role`. El frontend presenta pantallas separadas (ver RF-18) pero el backend es agnóstico al origen del login.
+> Un único endpoint (POST /api/v1/auth/login) que recibe `username` + `credential`. El sistema **NO** pide el rol al cliente — el rol se determina por el usuario encontrado en la base de datos. Tanto users como admins comparten la misma tabla (`users`) diferenciados por el campo `role`. El frontend presenta un único formulario de login (ver RF-18) y el backend es agnóstico al origen del login.
 Criterios de aceptación:
 - DADO QUE envío `username` y `credential` correctos, CUANDO hago login, ENTONCES el sistema devuelve un JWT en cookie HttpOnly con el rol correspondiente al usuario encontrado.
 - DADO QUE envío credenciales incorrectas, CUANDO hago login, ENTONCES el sistema devuelve 401 con mensaje genérico "credenciales inválidas" — sin revelar si el usuario existe.
@@ -200,15 +200,16 @@ Criterios de aceptación:
 - DADO QUE un usuario con rol user intenta acceder al endpoint de gestión, CUANDO hace la petición, ENTONCES recibe error 403.
 - DADO QUE no hay usuarios creados, CUANDO el admin consulta la lista, ENTONCES recibe una lista vacía con total: 0.
 ---
-**RF-18. Pantallas de login separadas**
-- Historia: Como sistema, quiero ofrecer pantallas de inicio de sesión separadas para usuarios normales y administradores para evitar confusión y reforzar la separación de roles.
-> Dos formularios en páginas distintas. `/login/user` pide PIN, `/login/admin` pide contraseña. Tras login exitoso, cada uno redirige a su vista correspondiente. El backend es agnóstico a la pantalla de origen — solo recibe `username` + `credential` y determina el rol por el usuario encontrado.
+**RF-18. Login único con redirección por rol**
+- Historia: Como sistema, quiero un único formulario de inicio de sesión que redirija automáticamente según el rol del usuario autenticado, para simplificar la experiencia sin duplicar pantallas.
+> Un único endpoint visual en `/login`. El backend recibe `username` + `credential`, determina el rol por el usuario encontrado en base de datos, y redirige: `user` → `/chat`, `admin` → `/dashboard`. La seguridad real reside en los roles y en el middleware `require_admin`, no en tener pantallas separadas. El dashboard admin (`/dashboard`) es una página Jinja2 + HTMX que sirve como puerta de entrada a las herramientas administrativas (gestión de usuarios, audit logs, informe de cumplimiento). No está implementado aún.
 Criterios de aceptación:
-- DADO QUE un usuario normal accede a `/login/user`, CUANDO introduce su PIN y pulsa entrar, ENTONCES la petición al backend envía `username` + `credential` y, si es correcto, redirige al chat.
-- DADO QUE un administrador accede a `/login/admin`, CUANDO introduce su contraseña y pulsa entrar, ENTONCES la petición al backend envía `username` + `credential` y, si es correcto, redirige al panel admin.
-- DADO QUE un usuario normal intenta iniciar sesión desde `/login/admin` con su PIN, CUANDO envía el formulario, ENTONCES el backend rechaza porque el PIN no coincide con ninguna credencial de admin — sin revelar por qué.
-- DADO QUE un administrador intenta iniciar sesión desde `/login/user` con su contraseña, CUANDO envía el formulario, ENTONCES el backend rechaza porque la contraseña no coincide con ninguna credencial de user — sin revelar por qué.
-- DADO QUE un usuario autenticado con sesión activa intenta acceder a una pantalla de login, CUANDO la página carga, ENTONCES redirige automáticamente a su vista correspondiente (chat o admin) sin mostrar el formulario.
+- DADO QUE un usuario con rol `user` inicia sesión con credenciales válidas, CUANDO el backend autentica, ENTONCES redirige a `/chat`.
+- DADO QUE un usuario con rol `admin` inicia sesión con credenciales válidas, CUANDO el backend autentica, ENTONCES redirige a `/dashboard`.
+- DADO QUE un usuario con sesión activa intenta acceder a `/login`, CUANDO la página carga, ENTONCES redirige automáticamente a su vista correspondiente (`/chat` o `/dashboard`) sin mostrar el formulario.
+- DADO QUE un usuario con rol `user` intenta acceder directamente a `/dashboard`, CUANDO el sistema verifica permisos, ENTONCES recibe error 403.
+- DADO QUE un usuario con rol `admin` intenta acceder a `/chat`, CUANDO el sistema verifica permisos, ENTONCES permite el acceso — el admin también puede usar el proxy.
+- DADO QUE se envían credenciales inválidas desde `/login`, CUANDO el backend rechaza, ENTONCES se muestra un mensaje genérico sin revelar si el usuario existe ni cuál es su rol.
 ---
 **RF-19. Informe de cumplimiento (Should)**
 - Historia: Como responsable de cumplimiento, quiero generar un informe resumido por rango de fechas para disponer de evidencia estructurada ante auditorías internas o externas.
