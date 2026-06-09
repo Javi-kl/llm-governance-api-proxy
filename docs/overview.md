@@ -29,7 +29,6 @@ Un proxy local que:
 - Gestión de usuarios normales vía API de administración (crear, desactivar, resetear PIN). Un único admin; no se crean admins adicionales desde la interfaz.
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
 - Health check, rate limit en login, errores controlados
-- Informe de cumplimiento descargable para auditorías
 - Despliegue con Docker Compose
 
 ## Fuera de alcance
@@ -52,7 +51,6 @@ Un proxy local que:
 - [X] Gestión de usuarios normales vía API de administración (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [X] Health check y rate limit en login
-- [ ] Informe de cumplimiento
 - [X] Login web único en /login (Jinja2 + HTMX)
 - [ ] Redirección automática por rol tras login (user → /chat, admin → /dashboard)
 - [X] Chat demo Gradio en /chat (demo temporal)
@@ -60,6 +58,7 @@ Un proxy local que:
 - [ ] Docker Compose + .env.example
 
 ### Beta
+- [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
 - [ ] Migrar detector a Presidio
 - [ ] Más categorías (salud, legal)
 - [ ] Compatibilidad OpenAI API para integrar con Open WebUI
@@ -108,7 +107,7 @@ app/
 ├── schemas/
 │   ├── auth.py          ← LoginRequest, UserCreate, UserResponse
 │   ├── chat.py          ← ChatRequest, ChatResponse
-│   ├── admin.py         ← UserManagement, AuditLogFilter, ComplianceReport
+│   ├── admin.py         ← UserManagement, AuditLogFilter, AuditLogResponse
 │   └── error.py         ← ErrorResponse (code, message, details)
 ├── services/
 │   ├── auth_service.py  ← login, logout, refresh, create_user, reset_pin
@@ -116,7 +115,7 @@ app/
 │   ├── policy.py        ← Decide acción por categoría (ADR-3)
 │   ├── provider.py      ← Reenvía al LLM externo (ADR-7)
 │   ├── chat_service.py  ← Orquestador: detector → policy → provider → logger
-│   ├── audit_service.py ← Guarda logs, consulta con filtros, genera informe (RF-19)
+│   ├── audit_service.py ← Guarda logs, consulta con filtros
 │   └── scheduler_service.py ← Lógica SQL de limpieza de retención
 ├── routers/
 │   ├── auth_router.py   ← /api/v1/auth/*
