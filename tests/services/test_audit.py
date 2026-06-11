@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.user import User
 from app.schemas.admin import AuditLogFilter, AuditLogResponse
-from app.services.audit import generate_report, list_logs, register_log
+from app.services.audit import list_logs, register_log
 
 
 # ── Helpers ────────────────────────────────────────────────
@@ -82,52 +82,3 @@ def test_list_logs_without_results(db_session: Session, regular_user: User):
 
     assert result.total == 0
     assert result.items == []
-
-
-# ── Ciclo 3: Generar informe ───────────────────────────────
-
-
-def test_generate_report_with_data(db_session: Session, regular_user: User):
-    _create_log(db_session, regular_user, action="allow")
-    _create_log(db_session, regular_user, action="allow")
-    _create_log(db_session, regular_user, action="mask", categories=["identificacion"])
-    _create_log(db_session, regular_user, action="block", categories=["financiero"])
-
-    report = generate_report(db_session)
-
-    assert report.total_requests == 4
-    assert report.by_action == {
-        "allow": 2,
-        "mask": 1,
-        "block": 1,
-        "error": 0,
-    }
-    assert "financiero" in report.top_categories
-    assert "identificacion" in report.top_categories
-
-
-def test_generate_report_without_data(db_session: Session, regular_user: User):
-    report = generate_report(db_session)
-
-    assert report.total_requests == 0
-    assert report.by_action == {
-        "allow": 0,
-        "mask": 0,
-        "block": 0,
-        "error": 0,
-    }
-    assert report.top_categories == []
-    assert report.last_cleanup is None
-
-
-def test_generate_report_with_range(db_session: Session, regular_user: User):
-    _create_log(db_session, regular_user, action="allow")
-    _create_log(db_session, regular_user, action="block", categories=["financiero"])
-
-    from datetime import datetime, timedelta
-
-    future = datetime.utcnow() + timedelta(days=1)
-    report = generate_report(db_session, date_to=future - timedelta(hours=1))
-
-    # Solo los logs insertados con server_default=now() entran en el rango
-    assert report.total_requests >= 2

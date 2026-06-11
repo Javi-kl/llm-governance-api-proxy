@@ -83,4 +83,9 @@ def logout(
 
     clear_auth_cookies(response)
     auth.logout(current_user, refresh_token_value, db)
+
+    # Si la petición viene de HTMX (dashboard), redirigir al login
+    if request.headers.get("HX-Request") == "true":
+        response.headers["HX-Redirect"] = "/login"
+
     return MessageResponse(message="sesión cerrada")

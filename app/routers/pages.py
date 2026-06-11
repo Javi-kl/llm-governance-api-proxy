@@ -23,8 +23,9 @@ from app.db.database import get_db
 from app.db.models.user import User
 from app.dependencies.auth_dep import get_user_from_request, require_admin
 from app.repositories import users
+from app.schemas.admin import AuditLogFilter
 from app.schemas.auth import LoginRequest
-from app.services import auth
+from app.services import audit, auth
 from app.ui.templates import templates
 
 logger = logging.getLogger("pages")
@@ -143,5 +144,43 @@ async def dashboard_page(
         context={
             "request": request,
             "user": current_user,
+        },
+    )
+
+
+# Etiquetas en español para valores técnicos de logs de auditoría.
+# Se pasan al template para mostrar texto legible sin perder las clases CSS.
+_ACTION_LABELS: dict[str, str] = {
+    "allow": "Permitida",
+    "mask": "Enmascarada",
+    "block": "Bloqueada",
+    "error": "Error",
+}
+
+_STATUS_LABELS: dict[str, str] = {
+    "success": "Correcto",
+    "provider_error": "Error del proveedor",
+}
+
+
+@router.get("/dashboard/logs", response_class=HTMLResponse)
+async def audit_logs_page(
+    request: Request,
+    current_user: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    """Muestra los últimos 50 logs de auditoría (solo metadatos)."""
+    filter_ = AuditLogFilter(page=1, page_size=50)
+    result = audit.list_logs(filter_, db)
+    return templates.TemplateResponse(
+        request=request,
+        name="audit_logs.html",
+        context={
+            "request": request,
+            "user": current_user,
+            "logs": result.items,
+            "total": result.total,
+            "action_labels": _ACTION_LABELS,
+            "status_labels": _STATUS_LABELS,
         },
     )

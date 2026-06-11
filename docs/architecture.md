@@ -27,7 +27,7 @@ Tres capas con responsabilidades estrictas:
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
 | **Provider** | Service | Reenvía el array `messages` saneado (con marcadores si hubo mask + system de privacidad) al LLM externo y devuelve la respuesta del assistant |
 | **Chat** | Service + Router | Orquestador para `/api/v1/chat`: recibe array `messages` → detector (re-detecta y sanea todo el array, no solo el último user) → policy → provider → logger → respuesta. Ver ADR-15. |
-| **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros, genera informe (RF-19) |
+| **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros |
 | **Scheduler** | Core | APScheduler: ejecuta limpieza de retención cada 24h |
 
 ## Flujo de una solicitud
@@ -171,11 +171,12 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 **Decisiones tomadas:**
 - Login único en `/login`. Redirección automática por rol: `user` → `/chat`, `admin` → `/dashboard`. La seguridad reside en los roles y el middleware `require_admin`, no en duplicar pantallas de login. Ver RF-18.
-- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs, informe de cumplimiento). Implementación prevista con Jinja2 + HTMX, pendiente de construir.
+- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs). Implementación prevista con Jinja2 + HTMX, pendiente de construir.
 
 **Decisiones pendientes (no tomadas aún):**
 - Diseño concreto del dashboard admin (layout, navegación, componentes).
-- UI final para audit logs e informe de cumplimiento.
+- UI final para audit logs.
+- Informe de cumplimiento (RF-19) — pospuesto a Beta.
 - Integración definitiva con OpenWebUI como UI de chat definitiva.
 
 **Trade-off:** Gradio no implementa auto-refresh del access token — si el token expira durante una sesión de chat, el usuario debe reautenticarse manualmente (ver TD-003). Gradio es pesado (~150 MB en disco) para una demo temporal; aceptable porque se prevé reemplazarlo en Beta. Jinja2 + HTMX escala mal si el número de pantallas crece mucho, pero para login + admin básico es suficiente.
@@ -336,7 +337,7 @@ para experiencia de usuario. CP solo con prefijo explícito sacrifica recall per
 | RAL-1 — Minimización de datos | GDPR | Art. 5(1)(c) — Minimización | Solo se almacenan metadatos operativos, nunca el contenido |
 | RAL-2 — Retención limitada | GDPR | Art. 5(1)(e) — Limitación de plazo | Los registros se eliminan automáticamente a los 90 días |
 | RNF-3 — No persistir prompts ni respuestas | GDPR | Art. 5(1)(f) — Integridad y confidencialidad | El contenido sensible nunca llega a disco |
-| RF-6, RF-19 — Consulta de logs + informe | GDPR | Art. 5(2) — Responsabilidad proactiva | El administrador puede generar evidencia documental de cumplimiento |
+| RF-6 — Consulta de logs | GDPR | Art. 5(2) — Responsabilidad proactiva | El administrador puede generar evidencia documental de cumplimiento mediante los logs filtrables. El informe agregado (RF-19) queda pospuesto a Beta. |
 | RNF-9 — Secrets por variables de entorno | GDPR | Art. 32 — Seguridad del tratamiento | Las credenciales nunca están en código fuente |
 | RAL-4 — Transparencia de bloqueos | AI Act | Art. 13 — Transparencia y comunicación | El usuario sabe cuándo y por qué se bloqueó su solicitud |
 

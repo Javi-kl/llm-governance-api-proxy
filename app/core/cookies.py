@@ -12,7 +12,6 @@ from app.core import config
 
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
-    """Setea las cookies HttpOnly de access_token y refresh_token en la respuesta."""
     settings = config.get_settings()
 
     response.set_cookie(
@@ -38,6 +37,5 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str) 
 
 
 def clear_auth_cookies(response: Response) -> None:
-    """Elimina las cookies de autenticación de la respuesta."""
     response.delete_cookie(key="access_token", path="/")
     response.delete_cookie(key="refresh_token", path="/api/v1/auth")

@@ -1,5 +1,4 @@
-"""Interfaz de chat con Gradio montada en /chat.
-
+"""
 Convierte el historial de Gradio al formato MessageItem del backend
 y llama a process_chat() — sin duplicar lógica de negocio ni de auth.
 """

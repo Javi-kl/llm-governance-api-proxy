@@ -202,7 +202,7 @@ Criterios de aceptación:
 ---
 **RF-18. Login único con redirección por rol**
 - Historia: Como sistema, quiero un único formulario de inicio de sesión que redirija automáticamente según el rol del usuario autenticado, para simplificar la experiencia sin duplicar pantallas.
-> Un único endpoint visual en `/login`. El backend recibe `username` + `credential`, determina el rol por el usuario encontrado en base de datos, y redirige: `user` → `/chat`, `admin` → `/dashboard`. La seguridad real reside en los roles y en el middleware `require_admin`, no en tener pantallas separadas. El dashboard admin (`/dashboard`) es una página Jinja2 + HTMX que sirve como puerta de entrada a las herramientas administrativas (gestión de usuarios, audit logs, informe de cumplimiento). No está implementado aún.
+> Un único endpoint visual en `/login`. El backend recibe `username` + `credential`, determina el rol por el usuario encontrado en base de datos, y redirige: `user` → `/chat`, `admin` → `/dashboard`. La seguridad real reside en los roles y en el middleware `require_admin`, no en tener pantallas separadas. El dashboard admin (`/dashboard`) es una página Jinja2 + HTMX que sirve como puerta de entrada a las herramientas administrativas (gestión de usuarios, audit logs). No está implementado aún.
 Criterios de aceptación:
 - DADO QUE un usuario con rol `user` inicia sesión con credenciales válidas, CUANDO el backend autentica, ENTONCES redirige a `/chat`.
 - DADO QUE un usuario con rol `admin` inicia sesión con credenciales válidas, CUANDO el backend autentica, ENTONCES redirige a `/dashboard`.
@@ -211,10 +211,22 @@ Criterios de aceptación:
 - DADO QUE un usuario con rol `admin` intenta acceder a `/chat`, CUANDO el sistema verifica permisos, ENTONCES permite el acceso — el admin también puede usar el proxy.
 - DADO QUE se envían credenciales inválidas desde `/login`, CUANDO el backend rechaza, ENTONCES se muestra un mensaje genérico sin revelar si el usuario existe ni cuál es su rol.
 ---
-**RF-19. Informe de cumplimiento (Should)**
-- Historia: Como responsable de cumplimiento, quiero generar un informe resumido por rango de fechas para disponer de evidencia estructurada ante auditorías internas o externas.
+**RF-19. Informe de cumplimiento (Pospuesto a Beta)**
+
+> **Decisión**: Este requisito queda fuera del alcance del MVP. Se pospone a la fase Beta.
+> **Motivo**: El informe es un requisito `Should`, no crítico para el núcleo del proxy. La trazabilidad
+> básica necesaria para cumplimiento se cubre con RF-5 (registro de auditoría) y RF-6 (consulta de logs).
+>
+> **Atención**: La historia, descripción y criterios de aceptación que siguen corresponden
+> exclusivamente a la fase Beta. No forman parte del MVP ni deben guiar la implementación actual.
+> Se documentan aquí para referencia futura y para no perder el análisis ya realizado.
+
+### Historia y criterios (Beta)
+
+- **Historia (Beta)**: Como responsable de cumplimiento, quiero generar un informe resumido por rango de fechas para disponer de evidencia estructurada ante auditorías internas o externas.
 > Solo accesible por admin. No es un dashboard visual — es un endpoint que devuelve datos agregados en JSON. El frontend lo muestra como tabla descargable.
-Criterios de aceptación:
+
+**Criterios de aceptación (Beta)**:
 - DADO QUE un admin solicita el informe sin fechas, CUANDO llama al endpoint, ENTONCES recibe los datos agregados del periodo completo (desde la primera solicitud registrada).
 - DADO QUE un admin solicita el informe con desde y hasta, CUANDO llama al endpoint, ENTONCES recibe solo los datos de ese rango.
 - DADO QUE hay solicitudes en el rango, CUANDO se genera el informe, ENTONCES incluye: total_solicitudes, desglose_por_accion (allow / mask / block / error), categorias_mas_detectadas (top 5) y ultima_limpieza_retencion (fecha y registros eliminados).

@@ -1,8 +1,8 @@
 """Consultas de persistencia para audit_logs.
 
-Centraliza inserción, filtrado, agregaciones y limpieza de retención
-sobre los metadatos de auditoría del proxy. No debe guardar prompts
-ni respuestas del proveedor LLM.
+Centraliza inserción, filtrado y limpieza de retención sobre los
+metadatos de auditoría del proxy. No debe guardar prompts ni respuestas
+del proveedor LLM.
 """
 
 from datetime import datetime, timedelta
@@ -90,48 +90,3 @@ def delete_older_than(db: Session, days: int = 90) -> int:
         db.execute(delete(AuditLog).where(AuditLog.timestamp < cutoff))
         db.flush()
     return count
-
-
-def count_in_range(
-    db: Session,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-) -> int:
-
-    base = select(func.count()).select_from(AuditLog)
-    if date_from is not None:
-        base = base.where(AuditLog.timestamp >= date_from)
-    if date_to is not None:
-        base = base.where(AuditLog.timestamp <= date_to)
-    return db.execute(base).scalar_one()
-
-
-def count_by_action(
-    db: Session,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-) -> dict[str, int]:
-
-    stmt = select(AuditLog.action, func.count().label("total")).group_by(
-        AuditLog.action
-    )
-    if date_from is not None:
-        stmt = stmt.where(AuditLog.timestamp >= date_from)
-    if date_to is not None:
-        stmt = stmt.where(AuditLog.timestamp <= date_to)
-    rows = db.execute(stmt).all()
-    return {row.action: row.total for row in rows}
-
-
-def get_all_detected_categories(
-    db: Session,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-) -> list[list[str]]:
-
-    stmt = select(AuditLog.detected_categories)
-    if date_from is not None:
-        stmt = stmt.where(AuditLog.timestamp >= date_from)
-    if date_to is not None:
-        stmt = stmt.where(AuditLog.timestamp <= date_to)
-    return [row.detected_categories for row in db.execute(stmt).all()]

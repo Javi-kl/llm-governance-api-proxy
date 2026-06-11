@@ -1,8 +1,11 @@
 from http.cookies import SimpleCookie
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.core import security
 from app.db.models.user import User
+from app.repositories import refresh_tokens
 
 # ── POST /api/v1/auth/login ───────────────────────────────
 
@@ -146,6 +149,68 @@ def test_given_authenticated_user_then_logout_deletes_cookie(
     set_cookies = response.headers.get_list("set-cookie")
     assert any("Max-Age=0" in c and "access_token" in c for c in set_cookies)
     assert any("Max-Age=0" in c and "refresh_token" in c for c in set_cookies)
+
+
+def test_given_authenticated_user_and_hx_request_then_logout_redirects_to_login(
+    client: TestClient, regular_user: User
+):
+    """Logout iniciado desde HTMX (dashboard) redirige al login."""
+    client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    response = client.post(
+        "/api/v1/auth/logout",
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("HX-Redirect") == "/login"
+
+    # Las cookies también se borran
+    set_cookies = response.headers.get_list("set-cookie")
+    assert any("Max-Age=0" in c and "access_token" in c for c in set_cookies)
+    assert any("Max-Age=0" in c and "refresh_token" in c for c in set_cookies)
+
+
+def test_given_normal_api_client_then_logout_has_no_hx_redirect(
+    client: TestClient, regular_user: User
+):
+    """Cliente API normal (sin header HX-Request) no recibe HX-Redirect."""
+    client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    response = client.post("/api/v1/auth/logout")
+    assert response.status_code == 200
+    assert "HX-Redirect" not in response.headers
+
+
+def test_given_authenticated_user_then_logout_revokes_refresh_token_in_db(
+    client: TestClient, regular_user: User, db_session: Session
+):
+    """Al hacer logout, el refresh token queda revocado en BD."""
+    # Login para obtener el refresh_token en la cookie
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "credential": "123456"},
+    )
+    assert login_response.status_code == 200
+    refresh_token_value = login_response.cookies.get("refresh_token")
+    assert refresh_token_value is not None
+
+    # Verificar que el token existe en BD y NO está revocado antes del logout
+    token_hash = security.hash_token(refresh_token_value)
+    stored = refresh_tokens.get_by_hash(token_hash, db_session)
+    assert stored is not None
+    assert stored.revoked is False
+
+    # Hacer logout (el cliente ya tiene las cookies del login)
+    logout_response = client.post("/api/v1/auth/logout")
+    assert logout_response.status_code == 200
+
+    # Verificar que el token ahora SÍ está revocado en BD
+    db_session.refresh(stored)
+    assert stored.revoked is True
 
 
 # ------ Refresh --------------------------

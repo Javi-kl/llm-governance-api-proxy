@@ -28,10 +28,3 @@ class AuditLogResponse(BaseModel):
 class AuditLogListResponse(BaseModel):
     items: list[AuditLogResponse]
     total: int
-
-
-class ComplianceReport(BaseModel):
-    total_requests: int
-    by_action: dict[str, int]  # {"allow": 10, "mask": 5, "block": 2, "error": 1}
-    top_categories: list[str]  # Top 5 categorías más detectadas
-    last_cleanup: str | None  # Fecha de última limpieza de retención
