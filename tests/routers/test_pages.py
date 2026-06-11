@@ -205,7 +205,7 @@ def test_given_regular_user_then_dashboard_returns_403(
 def test_given_admin_user_then_dashboard_returns_html(
     client: TestClient, admin_user: User
 ):
-    """Admin autenticado → 200, HTML con título y enlace al chat."""
+    """Admin autenticado → 200, HTML con navegación, botón de logout y secciones."""
     token = create_token(admin_user.id, admin_user.role)
     client.cookies.set("access_token", token)
 
@@ -215,4 +215,12 @@ def test_given_admin_user_then_dashboard_returns_html(
     content_type = response.headers.get("content-type", "")
     assert "text/html" in content_type
     assert "Panel de administración" in response.text
+    assert "Bienvenido" in response.text
     assert 'href="/chat"' in response.text
+    # Navegación: enlace al chat y secciones pendientes
+    assert "Ir al chat" in response.text
+    assert "Gestión de usuarios" in response.text
+    assert "Logs de auditoría" in response.text
+    # Botón de logout con HTMX
+    assert 'hx-post="/api/v1/auth/logout"' in response.text
+    assert "Cerrar sesión" in response.text
