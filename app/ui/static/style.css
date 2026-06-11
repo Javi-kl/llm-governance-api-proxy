@@ -182,3 +182,142 @@ main {
 .btn-danger:active {
     background-color: #991b1b;
 }
+
+/* ── Logs de auditoría ─────────────────────────────── */
+
+.logs-container {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.logs-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.logs-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.logs-back-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.logs-back-link:hover {
+    text-decoration: underline;
+}
+
+.logs-summary {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 1rem;
+}
+
+.logs-empty {
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #6b7280;
+    font-size: 1rem;
+}
+
+.logs-table-wrapper {
+    overflow-x: auto;
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.logs-table th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    background: #f9fafb;
+    color: #4b5563;
+    font-weight: 600;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.logs-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    vertical-align: top;
+}
+
+.logs-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.mono {
+    font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+    font-size: 0.8rem;
+    max-width: 260px;
+    word-break: break-all;
+}
+
+/* Badges de acción */
+.log-action {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.log-action--allow {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.log-action--mask {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.log-action--block {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.log-action--error {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Badges de estado */
+.log-status {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.log-status--success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.log-status--provider_error {
+    background: #fee2e2;
+    color: #991b1b;
+}

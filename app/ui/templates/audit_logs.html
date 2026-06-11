@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Logs de auditoría — LLM Governance Proxy{% endblock %}
+
+{% block content %}
+<div class="logs-container">
+    <header class="logs-header">
+        <h1>Logs de auditoría</h1>
+        <a href="/dashboard" class="logs-back-link">← Volver al panel</a>
+    </header>
+
+    {% if not logs %}
+    <div class="logs-empty">
+        <p>No hay logs de auditoría registrados.</p>
+    </div>
+    {% else %}
+    <p class="logs-summary">Mostrando {{ logs|length }} de {{ total }} registros.</p>
+
+    <div class="logs-table-wrapper">
+        <table class="logs-table">
+            <thead>
+                <tr>
+                    <th>Fecha/Hora</th>
+                    <th>ID de solicitud</th>
+                    <th>Usuario</th>
+                    <th>Proveedor</th>
+                    <th>Modelo</th>
+                    <th>Acción</th>
+                    <th>Categorías</th>
+                    <th>Latencia (ms)</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                    <td class="mono">{{ log.request_id }}</td>
+                    <td>{{ log.user_id }}</td>
+                    <td>{{ log.provider }}</td>
+                    <td>{{ log.model }}</td>
+                    <td>
+                        <span class="log-action log-action--{{ log.action }}">{{ action_labels.get(log.action, log.action) }}</span>
+                    </td>
+                    <td>{{ log.detected_categories | join(", ") or "—" }}</td>
+                    <td>{{ log.latency_ms }}</td>
+                    <td>
+                        <span class="log-status log-status--{{ log.status }}">{{ status_labels.get(log.status, log.status) }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
