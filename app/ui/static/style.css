@@ -102,3 +102,83 @@ main {
 .btn-primary:active {
     background-color: #1e40af;
 }
+
+/* ── Dashboard ──────────────────────────────────────── */
+
+.dashboard-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-container h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.dashboard-container p {
+    font-size: 0.95rem;
+    color: #4a4a4a;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+}
+
+.dashboard-nav li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dashboard-nav li:last-child {
+    border-bottom: none;
+}
+
+.dashboard-nav a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.dashboard-nav a:hover {
+    text-decoration: underline;
+}
+
+.dashboard-nav span {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.dashboard-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-danger {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #ffffff;
+    background-color: #dc2626;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.btn-danger:hover {
+    background-color: #b91c1c;
+}
+
+.btn-danger:active {
+    background-color: #991b1b;
+}
