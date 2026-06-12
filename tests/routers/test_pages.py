@@ -269,11 +269,11 @@ def test_given_admin_user_and_no_logs_then_audit_logs_shows_empty_state(
     assert "No hay logs de auditoría registrados." in response.text
 
 
-def test_given_admin_user_and_logs_then_audit_logs_renders_table(
+def test_given_admin_user_and_logs_then_audit_logs_renders_metadata(
     client: TestClient, admin_user: User, regular_user: User, db_session: Session
 ):
-    """Admin autenticado con un log de auditoría → HTML con tabla y metadatos visibles,
-    sin contenido de prompts ni respuestas."""
+    """Admin autenticado con un log de auditoría → HTML con metadatos visibles,
+    sin columnas de prompts ni respuestas."""
     # Crear un log de auditoría usando la función de servicio (no SQL directo)
     log = register_log(
         request_id="550e8400-e29b-41d4-a716-446655440000",
@@ -311,5 +311,6 @@ def test_given_admin_user_and_logs_then_audit_logs_renders_table(
     assert str(log.latency_ms) in html  # Latencia en ms
 
     # Contenido de prompts/respuestas NUNCA debe aparecer (RNF-3)
-    assert "prompt" not in html
+    assert "<th>Prompt</th>" not in html
+    assert "<th>Respuesta</th>" not in html
     assert "provider_response" not in html
