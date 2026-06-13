@@ -63,7 +63,7 @@ jobs:
         env:
           # DATABASE_URL: requerida por app/db/database.py al importarse durante tests.
           # TEST_DATABASE_URL: usada por tests/conftest.py como engine de test.
-          DATABASE_URL: postgresql://proxy_db_user:proxy_db_pass@localhost:5432/proxy_db_test
+          DATABASE_URL: postgresql://proxy_db_user:proxy_db_pass@localhost:5432/proxy_db
           TEST_DATABASE_URL: postgresql://proxy_db_user:proxy_db_pass@localhost:5432/proxy_db_test
           SECRET_KEY: ci-test-secret-key-do-not-use-in-prod-abc1234567890
           ALGORITHM: HS256

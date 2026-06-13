@@ -20,10 +20,10 @@ def send(messages: list[dict[str, str]]) -> str:
         "Authorization": f"Bearer {settings.LLM_API_KEY.get_secret_value()}",
         "Content-Type": "application/json",
     }
-
+    base_url = str(settings.LLM_BASE_URL).rstrip("/")
     try:
         response = httpx.post(
-            f"{settings.LLM_BASE_URL}/chat/completions",
+            f"{base_url}/chat/completions",
             json=body,
             headers=headers,
             timeout=settings.LLM_PROVIDER_TIMEOUT,
