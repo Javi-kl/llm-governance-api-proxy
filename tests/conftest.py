@@ -5,8 +5,9 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from limits.storage.memory import MemoryStorage
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.engine import make_url
 
 import app.db.models  # noqa: F401
 from app.core import config, security
@@ -17,12 +18,36 @@ from app.db.models.user import User
 from app.main import app
 from app.repositories import users
 
+
+def _assert_safe_test_database_url(test_url: str, app_url: str) -> None:
+    if test_url == app_url:
+        raise RuntimeError("TEST_DATABASE_URL no puede coincidir con DATABASE_URL.")
+
+    db_name = make_url(test_url).database or ""
+    if "test" not in db_name.lower():
+        raise RuntimeError(
+            "El nombre de la base de datos de test debe contener 'test'."
+        )
+
+
 # Engine de test: PostgreSQL (TEST_DATABASE_URL).
 _test_db_url = config.get_settings().TEST_DATABASE_URL
 if not _test_db_url:
     raise RuntimeError("TEST_DATABASE_URL no está configurada. Defínela en .env.")
+
+_assert_safe_test_database_url(_test_db_url, config.get_settings().DATABASE_URL)
+
 test_engine = create_engine(_test_db_url, echo=False)
 TestSessionLocal = sessionmaker(bind=test_engine, expire_on_commit=False)
+
+
+def _reset_test_schema() -> None:
+    """Resetea el schema public de PostgreSQL para aislar cada test."""
+    with test_engine.begin() as conn:
+        # DROP SCHEMA CASCADE elimina también tipos enum como userrole.
+        conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+    Base.metadata.create_all(bind=test_engine)
 
 
 @pytest.fixture(autouse=True)
@@ -36,8 +61,8 @@ def reset_rate_limiter() -> Generator[None, None, None]:
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    Base.metadata.drop_all(bind=test_engine)
-    Base.metadata.create_all(bind=test_engine)
+
+    _reset_test_schema()
 
     session = TestSessionLocal()
     try:
@@ -45,7 +70,7 @@ def db_session() -> Generator[Session, None, None]:
     finally:
         session.rollback()
         session.close()
-        Base.metadata.drop_all(bind=test_engine)
+        _reset_test_schema()
 
 
 @pytest.fixture
