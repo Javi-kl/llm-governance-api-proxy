@@ -1,163 +1,27 @@
-"""Rutas de páginas web del proxy: raíz, login y dashboard.
+"""Ruta web de logs de auditoría con filtros GET.
 
-El login web reutiliza auth_service.login() — la misma lógica que la API REST.
-En vez de devolver JSON, responde con cookies + HX-Redirect (éxito)
-o re-renderiza el formulario con error (fallo).
-
-El dashboard está protegido con require_admin: solo usuarios con rol admin
-pueden acceder. Usuario normal → 403, sin sesión → 401.
+Muestra los últimos 50 logs (solo metadatos) y permite filtrar por
+acción, usuario, y rango de fechas vía parámetros de query string.
 """
 
 import logging
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
-from app.core.rate_limit import limiter
-from app.core.cookies import set_auth_cookies
-from app.core.enums import UserRole
-from app.core.exceptions import InvalidCredentialsError
 from app.db.database import get_db
 from app.db.models.user import User
-from app.dependencies.auth_dep import get_user_from_request, require_admin
-from app.repositories import users
+from app.dependencies.auth_dep import require_admin
 from app.schemas.admin import AuditLogFilter
-from app.schemas.auth import LoginRequest
-from app.services import audit, auth
-from app.ui.templates import templates
+from app.services import audit
+from app.routers.web.common import _render_template
 
 logger = logging.getLogger("pages")
 
 router = APIRouter()
-
-
-# ── helpers de renderizado ────────────────────────────────────────────
-
-
-def _render_template(
-    request: Request,
-    template_name: str,
-    **context,
-) -> HTMLResponse:
-    """Renderiza un template Jinja2 con 'request' siempre en el contexto."""
-    return templates.TemplateResponse(
-        request=request,
-        name=template_name,
-        context={
-            "request": request,
-            **context,
-        },
-    )
-
-
-def _render_login(
-    request: Request,
-    error: str | None = None,
-) -> HTMLResponse:
-    """Renderiza la página de login con un mensaje de error opcional."""
-    if error is None:
-        return _render_template(request, "login.html")
-    return _render_template(request, "login.html", error=error)
-
-
-# ── helpers de negocio ────────────────────────────────────────────────
-
-
-def _redirect_for_user(user: User) -> RedirectResponse:
-    """Redirige al usuario según su rol: admin → /dashboard, resto → /chat."""
-    if user.role == UserRole.ADMIN:
-        return RedirectResponse(url="/dashboard", status_code=302)
-    return RedirectResponse(url="/chat", status_code=302)
-
-
-# ── endpoints ─────────────────────────────────────────────────────────
-
-
-@router.get("/")
-async def root(
-    request: Request,
-    db: Session = Depends(get_db),
-) -> RedirectResponse:
-    """Redirige por rol si hay sesión activa, a /login en caso contrario."""
-    if not request.cookies.get("access_token"):
-        return RedirectResponse(url="/login", status_code=302)
-
-    try:
-        user = get_user_from_request(request, db)
-    except InvalidCredentialsError:
-        return RedirectResponse(url="/login", status_code=302)
-    return _redirect_for_user(user)
-
-
-@router.get("/login", response_class=HTMLResponse, response_model=None)
-async def login_page(
-    request: Request,
-    db: Session = Depends(get_db),
-) -> HTMLResponse | RedirectResponse:
-    """Muestra el formulario de login; redirige por rol si ya hay sesión activa."""
-    if not request.cookies.get("access_token"):
-        return _render_login(request)
-
-    try:
-        user = get_user_from_request(request, db)
-    except InvalidCredentialsError:
-        return _render_login(request)
-    return _redirect_for_user(user)
-
-
-@router.post("/login")
-@limiter.limit("5/5minute")
-async def login_post(
-    request: Request,
-    db: Session = Depends(get_db),
-) -> Response:
-    """
-    Éxito → HX-Redirect a /chat o /dashboard según rol + cookies de sesión.
-    Fallo  → re-render del formulario con mensaje de error.
-    """
-    form = await request.form()
-    username_value = form.get("username")
-    username = username_value.strip() if isinstance(username_value, str) else ""
-    credential_value = form.get("credential")
-    credential = credential_value if isinstance(credential_value, str) else ""
-
-    if not username or not credential:
-        return _render_login(request, error="Usuario y credencial son obligatorios.")
-
-    try:
-        access_token, refresh_token = auth.login(
-            LoginRequest(username=username, credential=credential),
-            db,
-        )
-    except InvalidCredentialsError:
-        return _render_login(request, error="Credenciales inválidas.")
-
-    user = users.get_by_username(username, db)
-    redirect_url = "/dashboard" if user and user.role == UserRole.ADMIN else "/chat"
-
-    response = Response(status_code=200)
-    response.headers["HX-Redirect"] = redirect_url
-    set_auth_cookies(response, access_token, refresh_token)
-    return response
-
-
-@router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page(
-    request: Request,
-    current_user: Annotated[User, Depends(require_admin)],
-) -> HTMLResponse:
-    """
-    Usuario normal → 403, sin sesión → 401 vía los handlers de excepción.
-    """
-    return _render_template(
-        request,
-        "dashboard.html",
-        user=current_user,
-    )
-
 
 # ── constantes de logs de auditoría ───────────────────────────────────
 
