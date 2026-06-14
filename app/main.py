@@ -18,7 +18,7 @@ from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
 from app.routers.health import router as health_router
-from app.routers.pages import router as pages_router
+from app.routers.web import router as pages_router
 from app.ui.gradio_chat import build_gradio_app
 
 logger = logging.getLogger("main")
