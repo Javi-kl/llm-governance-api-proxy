@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Gestión de usuarios — LLM Governance Proxy{% endblock %}
+
+{% block content %}
+<div class="users-container">
+    <header class="users-header">
+        <div>
+            <h1>Gestión de usuarios</h1>
+            <p>Alta, desactivación y reseteo de PIN para usuarios normales.</p>
+        </div>
+        <a href="/dashboard" class="users-back-link">← Volver al panel</a>
+    </header>
+
+    {% include "users_panel.html" %}
+</div>
+{% endblock %}

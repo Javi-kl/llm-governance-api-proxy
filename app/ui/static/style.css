@@ -52,7 +52,8 @@ h1 {
 /* ── Cards y contenedores ──────────────────────── */
 .login-form,
 .dashboard-container,
-.logs-container {
+.logs-container,
+.users-container {
     background: var(--surface);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
@@ -90,11 +91,34 @@ h1 {
     margin: 2rem auto;
 }
 
+.users-container {
+    max-width: 1100px;
+    margin: 2rem auto;
+}
+
 .logs-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     margin-bottom: 1.5rem;
+}
+
+.users-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.users-header h1 {
+    margin: 0 0 0.35rem 0;
+}
+
+.users-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
 }
 
 .logs-header h1 {
@@ -126,7 +150,8 @@ h1 {
 /* Inputs y selects — apariencia compartida */
 .form-group input,
 .logs-filter-group select,
-.logs-filter-group input {
+.logs-filter-group input,
+.users-inline-form input {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     outline: none;
@@ -149,7 +174,8 @@ h1 {
 
 .form-group input:focus,
 .logs-filter-group select:focus,
-.logs-filter-group input:focus {
+.logs-filter-group input:focus,
+.users-inline-form input:focus {
     border-color: var(--text);
     box-shadow: 0 0 0 3px rgba(0, 206, 209, 0.15);
 }
@@ -171,6 +197,16 @@ h1 {
 
 .filter-error {
     margin-bottom: 0.75rem;
+}
+
+.success-message {
+    background: #063b2d;
+    color: #34d399;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    border: 1px solid #0f5f49;
+    margin-bottom: 1rem;
 }
 
 /* ── Botones ───────────────────────────────────── */
@@ -235,6 +271,13 @@ h1 {
     border-color: var(--border-light);
 }
 
+.btn-primary:disabled,
+.btn-danger:disabled,
+.btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
 /* ── Dashboard ─────────────────────────────────── */
 .dashboard-nav ul {
     list-style: none;
@@ -274,26 +317,37 @@ h1 {
 }
 
 /* ── Enlace volver ─────────────────────────────── */
-.logs-back-link {
+.logs-back-link,
+.users-back-link {
     color: var(--text);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
 }
 
-.logs-back-link:hover {
+.logs-back-link:hover,
+.users-back-link:hover {
     text-decoration: underline;
     color: #33d9de;
 }
 
 /* ── Logs de auditoría ─────────────────────────── */
-.logs-summary {
+.logs-summary,
+.users-summary {
     font-size: 0.875rem;
     color: var(--text-muted);
+}
+
+.logs-summary {
     margin-bottom: 1rem;
 }
 
-.logs-empty {
+.users-summary {
+    margin: 0;
+}
+
+.logs-empty,
+.users-empty {
     background: var(--surface-muted);
     border: 1px dashed var(--border);
     border-radius: var(--radius);
@@ -303,17 +357,20 @@ h1 {
     font-size: 1rem;
 }
 
-.logs-table-wrapper {
+.logs-table-wrapper,
+.users-table-wrapper {
     overflow-x: auto;
 }
 
-.logs-table {
+.logs-table,
+.users-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
 }
 
-.logs-table th {
+.logs-table th,
+.users-table th {
     text-align: left;
     padding: 0.625rem 0.75rem;
     background: var(--filter-bg);
@@ -323,14 +380,23 @@ h1 {
     white-space: nowrap;
 }
 
-.logs-table td {
+.logs-table td,
+.users-table td {
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--border);
     color: var(--text-muted);
+}
+
+.logs-table td {
     vertical-align: top;
 }
 
-.logs-table tbody tr:hover {
+.users-table td {
+    vertical-align: middle;
+}
+
+.logs-table tbody tr:hover,
+.users-table tbody tr:hover {
     background: var(--filter-bg);
 }
 
@@ -343,7 +409,8 @@ h1 {
 
 /* ── Badges ────────────────────────────────────── */
 .log-action,
-.log-status {
+.log-status,
+.user-status {
     display: inline-block;
     padding: 0.125rem 0.5rem;
     border-radius: 4px;
@@ -351,7 +418,8 @@ h1 {
     font-weight: 600;
 }
 
-.log-action {
+.log-action,
+.user-status {
     text-transform: uppercase;
 }
 
@@ -412,4 +480,81 @@ h1 {
     align-items: center;
     gap: 0.75rem;
     margin-top: 1rem;
+}
+
+/* ── Gestión de usuarios ───────────────────────── */
+.users-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.users-create-card {
+    padding: 1rem;
+    background: var(--filter-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.users-create-card h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.users-create-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px) auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.users-create-form .form-group {
+    margin-bottom: 0;
+}
+
+.users-create-form .btn-primary {
+    width: auto;
+    white-space: nowrap;
+}
+
+.users-inline-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.users-inline-form input {
+    width: 9rem;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.875rem;
+}
+
+.users-inline-form input:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.user-status--active {
+    background: #064e3b;
+    color: #34d399;
+}
+
+.user-status--inactive {
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+@media (max-width: 760px) {
+    .users-header {
+        flex-direction: column;
+    }
+
+    .users-create-form {
+        grid-template-columns: 1fr;
+    }
+
+    .users-create-form .btn-primary {
+        width: 100%;
+    }
 }
