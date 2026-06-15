@@ -1,0 +1,117 @@
+<section id="users-panel" class="users-panel">
+    {% if message %}
+    <div class="success-message">{{ message }}</div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <section class="users-create-card">
+        <h2>Crear usuario</h2>
+        <form
+            class="users-create-form"
+            hx-post="/dashboard/users"
+            hx-target="#users-panel"
+            hx-swap="outerHTML"
+        >
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    minlength="4"
+                    maxlength="19"
+                    autocomplete="off"
+                    placeholder="Ej. operario1"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="pin">PIN</label>
+                <input
+                    type="password"
+                    id="pin"
+                    name="pin"
+                    required
+                    pattern="\d{5,6}"
+                    inputmode="numeric"
+                    autocomplete="new-password"
+                    placeholder="5 o 6 dígitos"
+                >
+            </div>
+
+            <button type="submit" class="btn-primary">Crear usuario</button>
+        </form>
+    </section>
+
+    {% if not users %}
+    <div class="users-empty">
+        <p>No hay usuarios normales creados.</p>
+    </div>
+    {% else %}
+    <p class="users-summary">Mostrando {{ users|length }} de {{ total }} usuarios.</p>
+
+    <div class="users-table-wrapper">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th>Resetear PIN</th>
+                    <th>Desactivar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listed_user in users %}
+                <tr>
+                    <td>{{ listed_user.id }}</td>
+                    <td>{{ listed_user.username }}</td>
+                    <td>
+                        {% if listed_user.active %}
+                        <span class="user-status user-status--active">Activo</span>
+                        {% else %}
+                        <span class="user-status user-status--inactive">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ listed_user.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                    <td>
+                        <form
+                            class="users-inline-form"
+                            hx-post="/dashboard/users/{{ listed_user.id }}/pin"
+                            hx-target="#users-panel"
+                            hx-swap="outerHTML"
+                        >
+                            <input
+                                type="password"
+                                name="pin"
+                                required
+                                pattern="\d{5,6}"
+                                inputmode="numeric"
+                                autocomplete="new-password"
+                                placeholder="Nuevo PIN"
+                                {% if not listed_user.active %}disabled{% endif %}
+                            >
+                            <button type="submit" class="btn-secondary" {% if not listed_user.active %}disabled{% endif %}>Guardar</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form
+                            hx-post="/dashboard/users/{{ listed_user.id }}/deactivate"
+                            hx-target="#users-panel"
+                            hx-swap="outerHTML"
+                        >
+                            <button type="submit" class="btn-danger" {% if not listed_user.active %}disabled{% endif %}>Desactivar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
