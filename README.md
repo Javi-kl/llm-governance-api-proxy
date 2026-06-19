@@ -17,7 +17,36 @@ El MVP se acompaña de una UI web local sencilla y de una API documentada con Sw
 | **Chatbot de atención al cliente** | *Reduce carga del equipo, evita envío accidental de datos sensibles y mantiene un servicio de atención más estable.* | *El cliente puede pegar datos personales, números de pedido o incidencias con información sensible.* |
 | **Asistente interno para empleados** | *Ahorra tiempo al equipo y evita que se usen datos sensibles sin control.* | *Un empleado puede incluir datos de compañeros, clientes, nóminas o incidencias internas.* |
 
----
+## Funcionalidades principales
+- Autenticación con admin y usuarios.
+- Chat proxy hacia proveedor LLM.
+- Detección de datos sensibles.
+- Política allow/mask/block.
+- Auditoría sin almacenar prompts ni respuestas.
+- Panel admin para gestionar usuarios y logs.
+- Ejecución con Docker Compose.
+
+## Estructura del proyecto
+
+El proyecto sigue una arquitectura por capas `Router → Service → Repository`.
+
+```text
+app/
+├── core/           # Configuración, seguridad, excepciones, proveedor LLM y scheduler
+├── db/             # Conexión a PostgreSQL y modelos SQLAlchemy
+├── dependencies/   # Dependencias de FastAPI para auth y permisos
+├── repositories/   # Acceso a datos
+├── routers/        # Endpoints REST
+├── schemas/        # Modelos Pydantic de entrada/salida
+├── services/       # Lógica de negocio
+├── templates/      # Plantillas web
+└── static/         # Recursos estáticos
+
+docs/               # Documentación extendida del proyecto
+tests/              # Tests automatizados
+scripts/            # Scripts de arranque e inicialización
+```
+
 ## Arranque rápido
 
 1. Clona el repositorio.
@@ -42,11 +71,18 @@ openssl rand -hex 32
 4. Edita `.env` y configura como mínimo:
 ```env
 SECRET_KEY=valor-generado-con-openssl
-BOOTSTRAP_ADMIN_PASSWORD=contraseña-segura-del-admin-inicial
+BOOTSTRAP_ADMIN_PASSWORD=AdminDemo123!
 LLM_API_KEY=api-key-de-tu-proveedor-llm
 LLM_BASE_URL=url-base-de-tu-proveedor-llm
 LLM_MODEL=modelo-llm-que-quieres-usar
 ```
+
+Credenciales iniciales solo para demo local:
+
+- Usuario: `admin`
+- Contraseña: `AdminDemo123!`
+
+> Cambia la contraseña `BOOTSTRAP_ADMIN_PASSWORD` antes de usar el proyecto en un entorno real.
 
 - `LLM_BASE_URL` es la URL base compatible con chat completions que te da tu proveedor LLM.
 - `LLM_MODEL` es el modelo que quieres usar y queda registrado en los audit logs.
