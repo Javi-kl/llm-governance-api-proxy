@@ -19,6 +19,33 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+
+  # ── Aplicación FastAPI ─────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://proxy_user:proxy_pass@db:5432/proxy_db
+      TEST_DATABASE_URL: postgresql://proxy_user:proxy_pass@db:5432/proxy_db_test
+      SECRET_KEY: ${SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      ALGORITHM: ${ALGORITHM}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_PROVIDER_TIMEOUT: ${LLM_PROVIDER_TIMEOUT}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

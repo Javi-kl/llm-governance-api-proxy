@@ -1,6 +1,7 @@
 ## Contexto
 
-Las pymes y autónomos europeos usan cada vez más LLMs (ChatGPT, Claude, etc.). Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos. Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
+Las empresas europeas usan cada vez más LLMs. Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos.
+Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
 
 ## Objetivo del MVP
 
@@ -21,12 +22,12 @@ Un proxy local que:
 
 ## Alcance del MVP
 
-- Proxy API con endpoint `/api/v1/chat` (multi-turn, contrato propio). El endpoint compatible OpenAI queda en Beta
+- Proxy API con endpoint `/api/v1/chat` (multi-turn, contrato propio).
 - Detección por regex de 3 categorías: identificación, contacto, financiero
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
 - Bootstrap del primer admin al desplegar
-- Gestión de usuarios normales vía API de administración (crear, desactivar, resetear PIN). Un único admin; no se crean admins adicionales desde la interfaz.
+- Gestión de usuarios normales vía API de administración (crear, desactivar, resetear PIN). Un único admin;
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
 - Health check, rate limit en login, errores controlados
 - Despliegue con Docker Compose
@@ -43,19 +44,19 @@ Un proxy local que:
 ## Roadmap
 
 ### MVP
-- [ ] Proxy API funcional con endpoint /api/v1/chat
-- [ ] Detección regex de 3 categorías (identificación, contacto, financiero)
-- [ ] Política mask/block por categoría
+- [X] Proxy API funcional con endpoint /api/v1/chat
+- [X] Detección regex de 3 categorías (identificación, contacto, financiero)
+- [X] Política mask/block por categoría
 - [X] Autenticación (PIN user, password admin)
 - [X] Bootstrap del primer admin
 - [X] Gestión de usuarios normales vía API de administración (rol user únicamente)
 - [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [X] Health check y rate limit en login
 - [X] Login web único en /login (Jinja2 + HTMX)
-- [ ] Redirección automática por rol tras login (user → /chat, admin → /dashboard)
+- [X] Redirección automática por rol tras login (user → /chat, admin → /dashboard)
 - [X] Chat demo Gradio en /chat (demo temporal)
-- [ ] Dashboard admin con enlaces a herramientas administrativas (Jinja2 + HTMX)
-- [ ] Docker Compose + .env.example
+- [X] Dashboard admin con enlaces a herramientas administrativas (Jinja2 + HTMX)
+- [X] Docker Compose + .env.example
 
 ### Beta
 - [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
