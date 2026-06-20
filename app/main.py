@@ -20,6 +20,8 @@ from app.routers.chat import router as chat_router
 from app.routers.health import router as health_router
 from app.routers.web import router as pages_router
 from app.ui.gradio_chat import build_gradio_app
+from app.core.scheduler import start_scheduler, stop_scheduler
+
 
 logger = logging.getLogger("main")
 
@@ -30,7 +32,11 @@ STATIC_DIR = Path(__file__).parent / "ui" / "static"
 async def lifespan(app: FastAPI):
     with get_db_context() as db:
         bootstrap_admin(db, config.get_settings().BOOTSTRAP_ADMIN_PASSWORD)
-    yield
+    scheduler = start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler(scheduler)
 
 
 app = FastAPI(lifespan=lifespan)

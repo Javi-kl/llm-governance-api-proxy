@@ -3,8 +3,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.135-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-AGPL%203.0-green.svg)](LICENSE)
 
-> Este proyecto implementa una API proxy para centralizar y controlar el uso de modelos LLM de terceros en pymes y autónomos.
-Antes de reenviar cada solicitud al proveedor externo, inspecciona el texto para detectar categorías sensibles, aplica una política de: Block/Mask/Allow, y genera trazabilidad mínima útil para auditoría sin almacenar por defecto el contenido completo de prompts y respuestas.
+> Este proyecto implementa una API proxy para centralizar y controlar el uso de modelos LLM de terceros en empresas.
+Antes de reenviar cada solicitud al proveedor externo, inspecciona el texto para detectar categorías sensibles, aplica una política de: Block/Mask/Allow, y genera trazabilidad mínima útil para auditoría sin almacenar por defecto el contenido de prompts y respuestas.
 El MVP se acompaña de una UI web local sencilla y de una API documentada con Swagger para demostrar su funcionamiento e integración.
 
 > Documentación: [`architecture.md`](./docs/architecture.md) · [`overview.md`](./docs/overview.md) · [`requirements.md`](./docs/requirements.md)
@@ -28,7 +28,7 @@ El MVP se acompaña de una UI web local sencilla y de una API documentada con Sw
 
 ## Estructura del proyecto
 
-El proyecto sigue una arquitectura por capas `Router → Service → Repository`.
+Arquitectura por capas `Router → Service → Repository`.
 
 ```text
 app/
@@ -62,13 +62,7 @@ cd llm-governance-api-proxy
 cp .env.example .env
 ```
 
-3. Genera una `SECRET_KEY`:
-
-```bash
-openssl rand -hex 32
-```
-
-4. Edita `.env` y configura como mínimo:
+3. Edita `.env` y configura como mínimo:
 ```env
 SECRET_KEY=valor-generado-con-openssl
 BOOTSTRAP_ADMIN_PASSWORD=AdminDemo123!
@@ -77,6 +71,11 @@ LLM_BASE_URL=url-base-de-tu-proveedor-llm
 LLM_MODEL=modelo-llm-que-quieres-usar
 ```
 
+- `SECRET_KEY` Genera una con: `openssl rand -hex 32`
+- `LLM_BASE_URL` URL del proveedor compatible con la API de OpenAI.
+- `LLM_MODEL` Modelo que quieres usar y queda registrado en los audit logs.
+
+
 Credenciales iniciales solo para demo local:
 
 - Usuario: `admin`
@@ -84,11 +83,7 @@ Credenciales iniciales solo para demo local:
 
 > Cambia la contraseña `BOOTSTRAP_ADMIN_PASSWORD` antes de usar el proyecto en un entorno real.
 
-- `LLM_BASE_URL` es la URL base compatible con chat completions que te da tu proveedor LLM.
-- `LLM_MODEL` es el modelo que quieres usar y queda registrado en los audit logs.
-
-
-5. Levanta la app completa con Docker Compose:
+4. Levanta la app completa con Docker Compose:
 
 ```bash
 docker compose up --build
@@ -100,7 +95,7 @@ En segundo plano:
 docker compose up --build -d
 ```
 
-6. Accede a la aplicación:
+5. Accede a la aplicación:
 
 | Recurso | URL |
 |---------|-----|
@@ -108,12 +103,12 @@ docker compose up --build -d
 | Swagger | http://localhost:8000/docs |
 | Health check | http://localhost:8000/api/v1/health |
 
-7. Para parar los contenedores:
+6. Para parar los contenedores:
 
 ```bash
 docker compose down
 ```
-8. Para resetear también la base de datos:
+7. Para resetear también la base de datos:
 
 ```bash
 docker compose down -v
