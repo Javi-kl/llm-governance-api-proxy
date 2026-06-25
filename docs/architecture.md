@@ -137,28 +137,6 @@ Cliente (navegador, Gradio, OpenWebUI...)
 └──────────────────────────────────────────────┘
 ```
 
-### Producción (futuro)
-
-```
-┌──────────────────────────────────────────────┐
-│  VPS / servidor                              │
-│                                              │
-│  Internet                                    │
-│     │                                        │
-│     ▼                                        │
-│  ┌──────────────────┐                        │
-│  │ nginx            │ ← TLS, proxy inverso  │
-│  │ puerto 443       │                        │
-│  └───┬──────────┬───┘                        │
-│      │          │                             │
-│      ▼          ▼                             │
-│  ┌────────┐ ┌──────────┐ ┌──────────────┐   │
-│  │ /api/* │ │ /*       │ │ postgres:16   │   │
-│  │ proxy  │ │ frontend │ │               │   │
-│  │ :8000  │ │ estático │ └───────────────┘   │
-│  └────────┘ └──────────┘                     │
-└──────────────────────────────────────────────┘
-```
 
 ---
 
@@ -171,13 +149,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 **Decisiones tomadas:**
 - Login único en `/login`. Redirección automática por rol: `user` → `/chat`, `admin` → `/dashboard`. La seguridad reside en los roles y el middleware `require_admin`, no en duplicar pantallas de login. Ver RF-18.
-- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs). Implementación prevista con Jinja2 + HTMX, pendiente de construir.
-
-**Decisiones pendientes (no tomadas aún):**
-- Diseño concreto del dashboard admin (layout, navegación, componentes).
-- UI final para audit logs.
-- Informe de cumplimiento (RF-19) — pospuesto a Beta.
-- Integración definitiva con OpenWebUI como UI de chat definitiva.
+- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs). Implementación prevista con Jinja2 + HTMX.
 
 **Trade-off:** Gradio no implementa auto-refresh del access token — si el token expira durante una sesión de chat, el usuario debe reautenticarse manualmente (ver TD-003). Gradio es pesado (~150 MB en disco) para una demo temporal; aceptable porque se prevé reemplazarlo en Beta. Jinja2 + HTMX escala mal si el número de pantallas crece mucho, pero para login + admin básico es suficiente.
 

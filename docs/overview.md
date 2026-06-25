@@ -50,7 +50,7 @@ Un proxy local que:
 - [X] Autenticación (PIN user, password admin)
 - [X] Bootstrap del primer admin
 - [X] Gestión de usuarios normales vía API de administración (rol user únicamente)
-- [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
+- [X] Logs de auditoría (sin prompts/respuestas, retención 90 días)
 - [X] Health check y rate limit en login
 - [X] Login web único en /login (Jinja2 + HTMX)
 - [X] Redirección automática por rol tras login (user → /chat, admin → /dashboard)
@@ -61,82 +61,79 @@ Un proxy local que:
 ### Beta
 - [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
 - [ ] Migrar detector a Presidio
-- [ ] Más categorías (salud, legal)
 - [ ] Compatibilidad OpenAI API para integrar con Open WebUI
-
-### Producto
-- [ ] Multi-proveedor
-- [ ] Panel de estadísticas
-- [ ] Nginx en producción
-- [ ] Tests de carga
+- [ ] Detectar prompt injection
 
 ---
 
 ## Esqueleto
 
 ```text
-app/ui/
-├── __init__.py          ← Inicializa el módulo de UI
-├── gradio_chat.py       ← Chat demo temporal con Gradio, montado en /chat
-├── templates.py         ← Configuración de Jinja2 (directorio de templates)
-├── templates/
-│   ├── base.html        ← Layout base HTML
-│   └── login.html       ← Página de login web (formulario HTMX)
-└── static/
-    └── style.css        ← Estilos globales
-
 app/
-├── main.py              ← Crea la app, registra routers, arranca APScheduler
-├── core/
-│   ├── config.py        ← Settings con pydantic-settings (lee .env)
-│   ├── security.py      ← Argon2id, firma/verificación JWT
-│   ├── exceptions.py    ← Errores HTTP controlados (RF-8)
-│   ├── scheduler.py     ← APScheduler: limpieza de retención (ADR-9)
-│   └── rate_limit.py    ← Rate limiting con SlowAPI (RF-16)
+├── main.py                 ← Crea la app, registra routers, estáticos, Gradio y scheduler
+├── core/                   ← Configuración, seguridad, errores, cookies, rate limit y proveedor LLM
+│   ├── config.py
+│   ├── security.py
+│   ├── provider.py
+│   ├── scheduler.py
+│   └── ...
 ├── db/
-│   ├── database.py      ← Engine, SessionLocal, Base, get_db
+│   ├── database.py         ← Engine, SessionLocal, Base y helpers de sesión
 │   └── models/
-│       ├── user.py       ← User (username, pin_hash/password_hash, role, active)
-│       ├── session.py    ← RefreshToken (user_id, token_hash, expires_at)
-│       └── audit_log.py  ← AuditLog (request_id, timestamp, user_id, action...)
+│       ├── user.py         ← Usuario, rol y credenciales hasheadas
+│       ├── refresh_token.py ← Refresh tokens persistidos
+│       └── audit_log.py    ← Metadatos de auditoría
 ├── dependencies/
-│   └── auth_deps.py     ← get_current_user: extrae JWT de cookie, retorna User
+│   └── auth_dep.py         ← Dependencias de autenticación y permisos
 ├── repositories/
-│   ├── user_repo.py     ← create, get_by_username, get_by_id, update, deactivate
-│   ├── session_repo.py  ← create, get, delete, delete_by_user_id
-│   └── audit_repo.py    ← create, list (con filtros y paginación)
+│   ├── users.py            ← Acceso a datos de usuarios
+│   ├── refresh_tokens.py   ← Acceso a datos de sesiones
+│   └── audit_logs.py       ← Acceso a datos de auditoría
 ├── schemas/
-│   ├── auth.py          ← LoginRequest, UserCreate, UserResponse
-│   ├── chat.py          ← ChatRequest, ChatResponse
-│   ├── admin.py         ← UserManagement, AuditLogFilter, AuditLogResponse
-│   └── error.py         ← ErrorResponse (code, message, details)
+│   ├── auth.py             ← Schemas de autenticación
+│   ├── chat.py             ← Schemas del endpoint de chat
+│   ├── admin.py            ← Schemas de administración y auditoría
+│   ├── user.py             ← Schemas de usuario
+│   └── error.py            ← Schemas de error
 ├── services/
-│   ├── auth_service.py  ← login, logout, refresh, create_user, reset_pin
-│   ├── detector.py      ← Escanea prompt con regex (ADR-8)
-│   ├── policy.py        ← Decide acción por categoría (ADR-3)
-│   ├── provider.py      ← Reenvía al LLM externo (ADR-7)
-│   ├── chat_service.py  ← Orquestador: detector → policy → provider → logger
-│   ├── audit_service.py ← Guarda logs, consulta con filtros
-│   └── scheduler_service.py ← Lógica SQL de limpieza de retención
+│   ├── auth.py             ← Login, logout, refresh y cookies
+│   ├── admin.py            ← Gestión de usuarios
+│   ├── chat.py             ← Orquestación detector → policy → provider → audit
+│   ├── detector.py         ← Detección regex de datos sensibles
+│   ├── policy.py           ← Decisión allow/mask/block
+│   ├── audit.py            ← Creación y consulta de logs
+│   └── scheduler.py        ← Limpieza de retención
 ├── routers/
-│   ├── auth_router.py   ← /api/v1/auth/*
-│   ├── chat_router.py   ← /api/v1/chat
-│   ├── admin_router.py  ← /api/v1/admin/*
-│   └── health_router.py ← /api/v1/health
-└── templates/           ← (carpeta vacía — las plantillas web están en app/ui/templates/)
+│   ├── auth.py             ← Endpoints /api/v1/auth/*
+│   ├── chat.py             ← Endpoint /api/v1/chat
+│   ├── admin.py            ← Endpoints /api/v1/admin/*
+│   ├── health.py           ← Endpoint /api/v1/health
+│   └── web/
+│       ├── login.py        ← Página de login
+│       ├── dashboard.py    ← Panel principal de admin
+│       ├── users.py        ← Gestión web de usuarios
+│       ├── audit_logs.py   ← Consulta web de logs
+│       └── common.py       ← Helpers comunes de rutas web
+└── ui/
+    ├── gradio_chat.py      ← Chat demo montado en /chat
+    ├── templates.py        ← Configuración de Jinja2
+    ├── templates/          ← Plantillas HTML
+    └── static/             ← CSS y recursos estáticos
 
 tests/
-├── conftest.py
-├── test_auth.py
-├── test_chat.py
-├── test_detector.py
-├── test_policy.py
-├── test_admin.py
-└── test_health.py
+├── core/
+├── dependencies/
+├── repositories/
+├── routers/
+├── schemas/
+├── services/
+├── ui/
+└── conftest.py
 
 scripts/
-└── entrypoint.sh        ← Migraciones + arranque uvicorn
+├── entrypoint.sh           ← Migraciones + arranque uvicorn
+└── init-test-db.sh         ← Inicialización de base de datos de test
 
 .env.example
-docker-compose.yml       ← PostgreSQL local de desarrollo
+docker-compose.yml          ← App + PostgreSQL para ejecución local
 ```

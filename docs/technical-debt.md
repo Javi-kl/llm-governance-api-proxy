@@ -1,6 +1,6 @@
 # Deuda Técnica
 
-## TD-002: Formato de errores RF-8
+## TD-002: Formato de errores RF-8 -> **RESUELTO**
 
 - **Requisito**: RF-8 (formato envelope `{"error": {"code": ..., "message": ...}}`)
 - **Estado**: Pendiente — cambio de contrato de API, rompería frontend y tests existentes
