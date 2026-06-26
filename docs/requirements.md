@@ -27,7 +27,7 @@ Criterios de aceptación:
 - DADO QUE el prompt contiene un email y un número de teléfono, CUANDO el sistema lo inspecciona, ENTONCES detecta la categoría contacto.
 - DADO QUE el prompt contiene un IBAN válido, CUANDO el sistema lo inspecciona, ENTONCES detecta la categoría financiero.
 - DADO QUE el prompt está vacío o solo contiene espacios, CUANDO el sistema lo inspecciona, ENTONCES no detecta ninguna categoría.
-- DADO QUE el prompt contiene un dato que coincide parcialmente con un patrón (ej: DNI con una letra equivocada), CUANDO el sistema lo inspecciona, ENTONCES no lo detecta — solo los patrones completos activan la categoría.
+- DADO QUE el prompt contiene un dato que coincide parcialmente con un patrón (ej: DNI con una letra no permitida), CUANDO el sistema lo inspecciona, ENTONCES no lo detecta — solo los patrones completos activan la categoría.
 ---
 **RF-3. Política de acción por categoría**
 - Historia: Como responsable técnico, quiero que cada categoría sensible tenga una acción predefinida —permitir, enmascarar o bloquear— para que el sistema decida automáticamente cómo tratar cada solicitud según lo que contenga.
@@ -53,15 +53,14 @@ Criterios de aceptación:
 - DADO QUE el array `messages` contiene un IBAN en un mensaje user y la política para financiero es block, CUANDO el sistema evalúa, ENTONCES bloquea la solicitud sin enviarla al proveedor.
 - DADO QUE el array contiene un DNI (categoría mask) y un IBAN (categoría block) en mensajes user, CUANDO el sistema evalúa, ENTONCES se aplica block por ser la acción más restrictiva.
 - DADO QUE el array no contiene ningún dato sensible en ningún mensaje user, CUANDO el sistema evalúa, ENTONCES la acción resultante es allow — no se modifica ni bloquea nada.
-- DADO QUE no hay ninguna categoría definida en la configuración, CUANDO el sistema arranca, ENTONCES falla con un error de configuración explícito.
 ---
 **RF-4. Respuesta estructurada del proxy**
 - Historia: Como aplicación cliente, quiero recibir una respuesta JSON estructurada con el resultado del procesamiento para poder reaccionar de forma programática. El frontend decide qué información muestra al usuario final.
 Criterios de aceptación:
-- DADO QUE la solicitud fue allow, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "allow", provider_response con el texto generado.
-- DADO QUE la solicitud fue mask, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "mask", provider_response con la respuesta del LLM.
-- DADO QUE la solicitud fue block, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "block", reason con las categorías que causaron el bloqueo. No incluye provider_response.
-- DADO QUE el proveedor externo falla, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "error", reason con un mensaje genérico. No expone detalles del proveedor ni stacks.
+- DADO QUE la solicitud fue allow, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "allow", message con rol `assistant` y el texto generado.
+- DADO QUE la solicitud fue mask, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "mask", message con rol `assistant` y la respuesta del LLM.
+- DADO QUE la solicitud fue block, CUANDO el proxy responde, ENTONCES el JSON incluye: request_id, action: "block", message: null y reason con las categorías que causaron el bloqueo.
+- DADO QUE el proveedor externo falla, CUANDO el proxy responde, ENTONCES devuelve un error HTTP controlado con el envelope de RF-8. No expone detalles del proveedor ni stacks.
 - DADO QUE varias categorías fueron detectadas, CUANDO el proxy responde para acciones mask o block, ENTONCES el campo detected_categories lista todas las categorías encontradas.
 ---
 **RF-5. Trazabilidad mínima (registro de auditoría)**
@@ -69,7 +68,7 @@ Criterios de aceptación:
 > Se registran todas las solicitudes. El panel admin permite filtrar por action para distinguir incidencias de uso normal.
 Criterios de aceptación:
 - DADO QUE se procesa una solicitud con cualquier acción (allow, mask, block, error), CUANDO finaliza, ENTONCES se guarda en base de datos un registro con: request_id, timestamp, user_id, provider, model, action, detected_categories, latency_ms y status.
-- DADO QUE el campo prompt o provider_response existe en el flujo interno, CUANDO se guarda el registro, ENTONCES dichos campos no se persisten.
+- DADO QUE el flujo procesa mensajes del usuario y respuesta del proveedor, CUANDO se guarda el registro, ENTONCES dichos campos no se persisten.
 - DADO QUE el proveedor falla, CUANDO se registra, ENTONCES status es "provider_error" y los metadatos disponibles hasta el fallo quedan registrados.
 - DADO QUE un admin consulta los logs, CUANDO filtra por action=block, ENTONCES solo ve las solicitudes bloqueadas, ocultando las allow y mask.
 ---
@@ -79,7 +78,7 @@ Criterios de aceptación:
 Criterios de aceptación:
 - DADO QUE envío una solicitud a cualquier endpoint del proxy con una cookie de sesión válida, CUANDO el sistema la recibe, ENTONCES procesa la solicitud normalmente.
 - DADO QUE envío una solicitud sin cookie de sesión, CUANDO el sistema la recibe, ENTONCES devuelve error 401.
-- DADO QUE envío una solicitud con una cookie que corresponde a una sesión expirada, CUANDO el sistema la recibe, ENTONCES devuelve error 401 con mensaje "sesión expirada".
+- DADO QUE envío una solicitud con una cookie que corresponde a una sesión expirada, CUANDO el sistema la recibe, ENTONCES devuelve error 401 controlado.
 - DADO QUE la solicitud es al endpoint /api/v1/auth/login o /api/v1/health, CUANDO el sistema la recibe sin autenticación, ENTONCES la procesa sin exigir sesión.
 ---
 **RF-9. Catálogo cerrado de categorías sensibles**
@@ -97,7 +96,6 @@ Criterios de aceptación:
 - DADO QUE el prompt contiene un dato que coincide con un patrón del catálogo, CUANDO el sistema inspecciona, ENTONCES lo detecta con la categoría correspondiente.
 - DADO QUE el prompt contiene datos potencialmente sensibles pero que no coinciden con ningún patrón del catálogo (ej: fecha de nacimiento), CUANDO el sistema inspecciona, ENTONCES no los detecta y la solicitud se trata como allow.
 - DADO QUE se intenta añadir una categoría en caliente sin reiniciar el sistema, CUANDO se consulta el catálogo activo, ENTONCES solo devuelve las categorías definidas en el arranque.
-- DADO QUE el archivo de configuración de categorías tiene un patrón con sintaxis inválida, CUANDO el sistema arranca, ENTONCES falla con un error de configuración explícito indicando qué categoría y qué patrón falló.
 ---
 **RF-13. Bootstrap del primer administrador**
 - Historia: Como sistema, quiero disponer de un mecanismo de bootstrap que cree el primer usuario administrador durante el despliegue inicial, sin exponer un endpoint de registro público de administradores.
@@ -136,15 +134,15 @@ Criterios de aceptación:
 ---
 **RF-6. Consulta del historial de auditoría**
 - Historia: Como usuario administrador, quiero consultar un historial de solicitudes con filtros básicos para revisar decisiones, incidencias y uso del sistema.
-> Solo accesible por admin. Un user recibe 403. Los filtros son: action, user_id, desde/hasta (fechas), y paginación (page, page_size).
+> Solo accesible por admin desde la ruta web `/dashboard/logs`. Un user recibe 403. Los filtros son: action, user_id y rango de fechas.
 Criterios de aceptación:
-- DADO QUE un admin consulta /api/v1/admin/logs sin filtros, CUANDO solicita la primera página, ENTONCES recibe una lista paginada con todas las solicitudes registradas, ordenadas por fecha descendente.
+- DADO QUE un admin consulta `/dashboard/logs` sin filtros, CUANDO carga la página, ENTONCES ve las solicitudes registradas ordenadas por fecha descendente.
 - DADO QUE un admin filtra por action=block, CUANDO consulta los logs, ENTONCES solo ve las solicitudes bloqueadas.
 - DADO QUE un admin filtra por rango de fechas (desde y hasta), CUANDO consulta los logs, ENTONCES solo ve solicitudes dentro de ese rango.
 - DADO QUE un admin filtra por user_id, CUANDO consulta los logs, ENTONCES solo ve solicitudes de ese usuario.
 - DADO QUE los filtros no devuelven resultados, CUANDO el admin consulta, ENTONCES recibe una lista vacía con total: 0, sin error.
-- DADO QUE un admin envía un valor de filtro inválido (ej: action=invalid), CUANDO consulta, ENTONCES recibe error 422 indicando qué filtro y qué valores son válidos.
-- DADO QUE un usuario con rol user intenta acceder al endpoint de logs, CUANDO consulta, ENTONCES recibe error 403.
+- DADO QUE un admin envía un valor de filtro inválido (ej: action=invalid), CUANDO consulta, ENTONCES la vista muestra un mensaje de error de filtro sin exponer detalles internos.
+- DADO QUE un usuario con rol user intenta acceder a la ruta de logs, CUANDO consulta, ENTONCES recibe error 403.
 ---
 **RF-8. Formato de error controlado y consistente**
 - Historia: Como sistema, quiero devolver errores en un formato JSON controlado y consistente cuando falle el proveedor externo o la validación interna, para no exponer detalles técnicos ni romper la integración.
@@ -202,7 +200,7 @@ Criterios de aceptación:
 ---
 **RF-18. Login único con redirección por rol**
 - Historia: Como sistema, quiero un único formulario de inicio de sesión que redirija automáticamente según el rol del usuario autenticado, para simplificar la experiencia sin duplicar pantallas.
-> Un único endpoint visual en `/login`. El backend recibe `username` + `credential`, determina el rol por el usuario encontrado en base de datos, y redirige: `user` → `/chat`, `admin` → `/dashboard`. La seguridad real reside en los roles y en el middleware `require_admin`, no en tener pantallas separadas. El dashboard admin (`/dashboard`) es una página Jinja2 + HTMX que sirve como puerta de entrada a las herramientas administrativas (gestión de usuarios, audit logs). No está implementado aún.
+> Un único endpoint visual en `/login`. El backend recibe `username` + `credential`, determina el rol por el usuario encontrado en base de datos, y redirige: `user` → `/chat`, `admin` → `/dashboard`. La seguridad real reside en los roles y en el middleware `require_admin`, no en tener pantallas separadas. El dashboard admin (`/dashboard`) es una página Jinja2 + HTMX que sirve como puerta de entrada a las herramientas administrativas (gestión de usuarios, audit logs).
 Criterios de aceptación:
 - DADO QUE un usuario con rol `user` inicia sesión con credenciales válidas, CUANDO el backend autentica, ENTONCES redirige a `/chat`.
 - DADO QUE un usuario con rol `admin` inicia sesión con credenciales válidas, CUANDO el backend autentica, ENTONCES redirige a `/dashboard`.
@@ -248,7 +246,7 @@ Criterios de aceptación:
 - Historia: Como responsable del sistema, quiero almacenar solo metadatos operativos y de auditoría, excluyendo por defecto el contenido completo de prompts y respuestas, para reducir riesgo y complejidad.
 > Ni una línea de prompt ni de respuesta en base de datos. Si en el futuro se necesita, será una decisión explícita con su propio RF.
 Criterios de aceptación:
-- DADO QUE se procesa una solicitud, CUANDO se guarda el registro de auditoría, ENTONCES los campos prompt y provider_response no existen en la tabla de logs.
+- DADO QUE se procesa una solicitud, CUANDO se guarda el registro de auditoría, ENTONCES la tabla de logs no contiene mensajes del usuario ni respuestas del proveedor.
 - DADO QUE un desarrollador inspecciona el modelo de datos de logs, CUANDO revisa las columnas, ENTONCES no encuentra ninguna columna que almacene texto de prompt o respuesta.
 - DADO QUE se consultan los logs desde el panel admin, CUANDO se muestra un registro, ENTONCES no aparece el contenido del prompt ni de la respuesta en ningún campo.
 - DADO QUE el sistema está en desarrollo y se usa un logger, CUANDO se registra información, ENTONCES los prompts y respuestas completos no aparecen en los logs de aplicación por defecto.
@@ -258,8 +256,8 @@ Criterios de aceptación:
 > Los metadatos de auditoría contienen user_id, action, detected_categories. Un user normal no debe ver solicitudes de otros usuarios ni estadísticas de uso.
 Criterios de aceptación:
 - DADO QUE un usuario con rol user intenta acceder a cualquier endpoint bajo /api/v1/admin/*, CUANDO hace la petición, ENTONCES recibe error 403.
-- DADO QUE un usuario con rol admin accede a los endpoints de logs, CUANDO consulta, ENTONCES recibe los datos sin restricción.
-- DADO QUE un usuario no autenticado intenta acceder a los logs, CUANDO hace la petición, ENTONCES recibe error 401.
+- DADO QUE un usuario con rol admin accede a la vista de logs del panel admin, CUANDO consulta, ENTONCES recibe los datos sin restricción.
+- DADO QUE un usuario no autenticado intenta acceder a la vista de logs, CUANDO hace la petición, ENTONCES recibe error 401.
 - DADO QUE un admin consulta los logs, CUANDO ve los registros, ENTONCES los metadatos mostrados no incluyen información que permita reconstruir el contenido del prompt o la respuesta.
 ---
 **RNF-9. Configuración crítica por variables de entorno**

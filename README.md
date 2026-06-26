@@ -1,16 +1,17 @@
-# llm-governance-api-proxy
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.135-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.136.1-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-AGPL%203.0-green.svg)](LICENSE)
 
-> Presentación: [slides del proyecto](https://docs.google.com/presentation/d/1HGxZi3C1c7-zMwx_RuyBnGrLH2St4Rl2kG6m66cITv0/edit?usp=sharing)
-
-> Este proyecto implementa una API proxy para centralizar y controlar el uso de modelos LLM de terceros en empresas.
-Antes de reenviar cada solicitud al proveedor externo, inspecciona el texto para detectar categorías sensibles, aplica una política de: Block/Mask/Allow, y genera trazabilidad mínima útil para auditoría sin almacenar por defecto el contenido de prompts y respuestas.
-El MVP se acompaña de una UI web local sencilla y de una API documentada con Swagger para demostrar su funcionamiento e integración.
+> Centraliza y controla el uso de modelos LLM de terceros en empresas.
+Antes de reenviar cada solicitud al proveedor LLM, inspecciona el texto del historial de mensajes para detectar categorías sensibles,
+aplica una política de: Block/Mask/Allow, y genera trazabilidad útil para auditoría sin almacenar por defecto prompts y respuestas.
+Se acompaña de una UI web local sencilla y de una API documentada con Swagger para demostrar su funcionamiento e integración.
 
 > Documentación: [`architecture.md`](./docs/architecture.md) · [`overview.md`](./docs/overview.md) · [`requirements.md`](./docs/requirements.md)
 
+> Presentación: [slides](https://docs.google.com/presentation/d/1HGxZi3C1c7-zMwx_RuyBnGrLH2St4Rl2kG6m66cITv0/edit?usp=sharing)
+
+> Video: ... TODO ...
 ---
 
 ## Funcionalidades principales
@@ -43,6 +44,9 @@ scripts/            # Scripts de arranque e inicialización
 ```
 
 ## Arranque rápido
+
+> El proyecto está pensado para infraestructura privada mediante Docker Compose; no incluye
+despliegue público multiempresa.
 
 1. Clona el repositorio.
 
