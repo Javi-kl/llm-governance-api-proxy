@@ -2,10 +2,10 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136.1-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-AGPL%203.0-green.svg)](LICENSE)
 
-> Centraliza y controla el uso de modelos LLM de terceros en empresas.
+> Proyecto para centralizar y controlar el uso de modelos LLM de terceros.
 Antes de reenviar cada solicitud al proveedor LLM, inspecciona el texto del historial de mensajes para detectar categorías sensibles,
-aplica una política de: Block/Mask/Allow, y genera trazabilidad útil para auditoría sin almacenar por defecto prompts y respuestas.
-Se acompaña de una UI web local sencilla y de una API documentada con Swagger para demostrar su funcionamiento e integración.
+aplica una política de: Block/Mask/Allow, y genera trazabilidad para auditoría sin almacenar por defecto prompts y respuestas.
+Se acompaña de una UI web local y de una API documentada con Swagger.
 
 > Documentación: [`architecture.md`](./docs/architecture.md) · [`overview.md`](./docs/overview.md) · [`requirements.md`](./docs/requirements.md)
 

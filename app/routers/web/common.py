@@ -34,6 +34,11 @@ def _render_login(
     return _render_template(request, "login.html", error=error)
 
 
+def _render_landing(request: Request) -> HTMLResponse:
+    """Renderiza la landing pública."""
+    return _render_template(request, "landing.html")
+
+
 def _redirect_for_user(user: User) -> RedirectResponse:
     """Redirige al usuario según su rol: admin → /dashboard, resto → /chat."""
     if user.role == UserRole.ADMIN:

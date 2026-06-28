@@ -1,4 +1,4 @@
-"""Tests de integración HTTP para las rutas web de login y raíz.
+"""Tests de integración HTTP para las rutas web de landing, login y raíz.
 
 Verifican redirects, renderizado de formulario, manejo de errores
 y emisión de cookies + header HX-Redirect en login exitoso.
@@ -15,11 +15,15 @@ from tests.conftest import create_token
 # ═══════════════════════════════════════════════════════════
 
 
-def test_given_no_cookie_then_root_redirects_to_login(client: TestClient):
+def test_given_no_cookie_then_root_returns_landing(client: TestClient):
     response = client.get("/", follow_redirects=False)
 
-    assert response.status_code == 302
-    assert response.headers["location"] == "/login"
+    assert response.status_code == 200
+    content_type = response.headers.get("content-type", "")
+    assert "text/html" in content_type
+    assert "Controla el uso de IA" in response.text
+    assert 'href="/login"' in response.text
+    assert "Registrarse" not in response.text
 
 
 def test_given_valid_access_token_cookie_then_root_redirects_to_chat(
@@ -34,7 +38,7 @@ def test_given_valid_access_token_cookie_then_root_redirects_to_chat(
     assert response.headers["location"] == "/chat"
 
 
-def test_given_invalid_token_cookie_then_root_redirects_to_login(
+def test_given_invalid_token_cookie_then_root_returns_landing(
     client: TestClient,
 ):
     # Token que no pasa validación de firma JWT
@@ -42,8 +46,8 @@ def test_given_invalid_token_cookie_then_root_redirects_to_login(
 
     response = client.get("/", follow_redirects=False)
 
-    assert response.status_code == 302
-    assert response.headers["location"] == "/login"
+    assert response.status_code == 200
+    assert "Controla el uso de IA" in response.text
 
 
 def test_given_admin_cookie_then_root_redirects_to_dashboard(

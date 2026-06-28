@@ -20,26 +20,26 @@ from app.dependencies.auth_dep import get_user_from_request
 from app.repositories import users
 from app.schemas.auth import LoginRequest
 from app.services import auth
-from app.routers.web.common import _redirect_for_user, _render_login
+from app.routers.web.common import _redirect_for_user, _render_landing, _render_login
 
 logger = logging.getLogger("pages")
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=None)
 async def root(
     request: Request,
     db: Session = Depends(get_db),
-) -> RedirectResponse:
-    """Redirige por rol si hay sesión activa, a /login en caso contrario."""
+) -> HTMLResponse | RedirectResponse:
+    """Muestra la landing pública o redirige por rol si hay sesión activa."""
     if not request.cookies.get("access_token"):
-        return RedirectResponse(url="/login", status_code=302)
+        return _render_landing(request)
 
     try:
         user = get_user_from_request(request, db)
     except InvalidCredentialsError:
-        return RedirectResponse(url="/login", status_code=302)
+        return _render_landing(request)
     return _redirect_for_user(user)
 
 
