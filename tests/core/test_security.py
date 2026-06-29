@@ -1,11 +1,12 @@
-import jwt
-
-import pytest
 from datetime import timedelta
 
-from app.core import config, security
-from app.core.enums import UserRole
+import jwt
+import pytest
+from pydantic import HttpUrl, SecretStr, ValidationError
 
+from app.core import config, security
+from app.core.config import Settings
+from app.core.enums import UserRole
 
 # ── create_access_token ──────────────────────────────────
 
@@ -125,3 +126,15 @@ def test_hash_token_given_same_input_then_returns_same_hash():
 
     assert hash1 == hash2
     assert len(hash1) == 64  # SHA-256 en hex = 64 chars
+
+
+def test_given_short_secret_key_then_settings_validation_fails():
+    with pytest.raises(ValidationError, match="SECRET_KEY"):
+        Settings(
+            DATABASE_URL="postgresql://user:pass@localhost:5432/app",
+            TEST_DATABASE_URL="postgresql://user:pass@localhost:5432/app_test",
+            SECRET_KEY=SecretStr("short"),
+            LLM_API_KEY=SecretStr("test-api-key"),
+            LLM_BASE_URL=HttpUrl("https://api.openai.com/v1"),
+            LLM_MODEL="gpt-4o-mini",
+        )
