@@ -171,7 +171,7 @@ Criterios de aceptación:
 > Endpoint público — no requiere autenticación. Verifica conectividad con la base de datos.
 Criterios de aceptación:
 - DADO QUE el proxy y la base de datos están operativos, CUANDO se llama a GET /api/v1/health, ENTONCES devuelve 200 con { "status": "healthy", "database": "connected" }.
-- DADO QUE la base de datos no responde, CUANDO se llama a GET /api/v1/health, ENTONCES devuelve 503 con { "status": "unhealthy", "database": "disconnected" }.
+- DADO QUE el proxy está arrancando y la base de datos aún no está lista, CUANDO se llama a GET /api/v1/health, ENTONCES devuelve 503 con el envelope de RF-8 e identifica de forma genérica la dependencia no disponible, sin exponer detalles internos de conexión.
 - DADO QUE el proxy está arrancando y la base de datos aún no está lista, CUANDO se llama a GET /api/v1/health, ENTONCES devuelve 503 indicando qué dependencia falla.
 - DADO QUE se llama al health check sin credenciales, CUANDO el sistema recibe la petición, ENTONCES responde normalmente sin exigir autenticación.
 ---

@@ -31,6 +31,8 @@ Un proxy local que:
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
 - Health check, rate limit en login, errores controlados
 - Despliegue con Docker Compose
+- UI de chat demo con gradio renderizada desde el backend con htmx y jinja.
+
 
 ## Fuera de alcance
 
@@ -61,7 +63,7 @@ Un proxy local que:
 ### Beta
 - [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
 - [ ] Migrar detector a Presidio
-- [ ] Compatibilidad OpenAI API para integrar con Open WebUI
+- [ ] Compatibilidad OpenAI API (Prioridad)
 - [ ] Detectar prompt injection
 
 ---

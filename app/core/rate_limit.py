@@ -33,9 +33,7 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
 
 
 limiter: Limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["100/minute"],
-    swallow_errors=True,
+    key_func=get_remote_address, default_limits=["100/minute"], swallow_errors=False
 )
 
 

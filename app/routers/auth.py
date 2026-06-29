@@ -69,6 +69,7 @@ def change_password(
     return MessageResponse(message="Contraseña actualizada correctamente")
 
 
+# Solo logout del dispositivo actual.
 @router.post(
     "/logout",
     response_model=MessageResponse,
