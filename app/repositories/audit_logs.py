@@ -5,7 +5,8 @@ metadatos de auditoría del proxy. No debe guardar prompts ni respuestas
 del proveedor LLM.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 from typing import Sequence
 
 from sqlalchemy import delete, func, select
@@ -80,7 +81,7 @@ def delete_older_than(db: Session, days: int = 90) -> int:
     Retorna el número de filas eliminadas.
     Usado por el scheduler de retención (RAL-2, ADR-9).
     """
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     count = db.execute(
         select(func.count()).select_from(
             select(AuditLog.id).where(AuditLog.timestamp < cutoff).subquery()

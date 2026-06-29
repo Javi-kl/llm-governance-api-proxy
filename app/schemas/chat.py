@@ -4,8 +4,8 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.core.enums import MessageRole
 
-MAX_LEN_CONTENT = 16000
-MAX_LEN_MESSAGES = 20
+MAX_CONTENT_LENGTH = 16000
+MAX_MESSAGES_LENGTH = 20
 
 
 class MessageItem(BaseModel):
@@ -15,7 +15,7 @@ class MessageItem(BaseModel):
     @field_validator("content")
     @classmethod
     def _max_len_content(cls, content: str) -> str:
-        if len(content) > MAX_LEN_CONTENT:
+        if len(content) > MAX_CONTENT_LENGTH:
             raise ValueError("Has alcanzado el limite de caracteres")
         return content
 
@@ -40,7 +40,7 @@ class ChatRequest(BaseModel):
     @field_validator("messages")
     @classmethod
     def _len_max_limit_messages(cls, messages: list[MessageItem]) -> list[MessageItem]:
-        if len(messages) > MAX_LEN_MESSAGES:
+        if len(messages) > MAX_MESSAGES_LENGTH:
             raise ValueError("Has alcanzado el limite de mensajes para esta sesion.")
         return messages
 
