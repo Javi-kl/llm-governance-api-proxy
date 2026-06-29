@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.enums import MessageRole
-from app.schemas.chat import ChatRequest, ChatResponse, MessageItem
+from app.schemas.chat import ChatRequest, ChatResponse, MAX_CONTENT_LENGTH, MessageItem
 
 
 def test_given_one_user_message_then_creates_chat_request():
@@ -53,3 +53,10 @@ def test_given_invalid_action_then_raises_validation_error():
                 "reason": None,
             }
         )
+
+
+def test_given_too_long_message_content_then_raises_validation_error():
+    content = "x" * (MAX_CONTENT_LENGTH + 1)
+
+    with pytest.raises(ValidationError, match="caracteres"):
+        MessageItem(role=MessageRole.USER, content=content)

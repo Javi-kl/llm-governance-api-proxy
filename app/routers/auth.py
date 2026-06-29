@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.cookies import set_auth_cookies, clear_auth_cookies
+from app.core.cookies import clear_auth_cookies, set_auth_cookies
 from app.core.rate_limit import limiter
 from app.db.database import get_db
 from app.db.models.user import User
@@ -39,6 +39,7 @@ def login(
     response_model=MessageResponse,
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("10/minute")
 def refresh_token(
     request: Request,
     response: Response,
@@ -68,6 +69,7 @@ def change_password(
     return MessageResponse(message="Contraseña actualizada correctamente")
 
 
+# Solo logout del dispositivo actual.
 @router.post(
     "/logout",
     response_model=MessageResponse,

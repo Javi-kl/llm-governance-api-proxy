@@ -33,7 +33,7 @@ def get_user_from_request(request: Request, db: Session) -> User:
         payload = jwt.decode(
             token,
             config.get_settings().SECRET_KEY.get_secret_value(),
-            algorithms=[config.get_settings().ALGORITHM],
+            algorithms=[config.JWT_ALGORITHM],
         )
         user_id = int(payload.get("sub", 0))
     except (InvalidTokenError, ValueError):

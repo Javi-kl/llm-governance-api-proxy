@@ -1,11 +1,11 @@
 # Deuda Técnica
 
-## TD-002: Formato de errores RF-8
+## TD-002: Formato de errores RF-8 -> **CERRADO**
 
 - **Requisito**: RF-8 (formato envelope `{"error": {"code": ..., "message": ...}}`)
-- **Estado**: Pendiente — cambio de contrato de API, rompería frontend y tests existentes
-- **Archivos afectados**: `app/core/handlers.py`, todos los routers
-- **Cerrar cuando**: antes del primer release, cuando se unifique el formato de errores
+- **Estado**: Cerrado — el formato de errores ya está unificado
+- **Archivos afectados**: `app/core/handlers.py`, `app/core/error_response.py`, `app/schemas/error.py`
+- **Cerrado cuando**: se centralizó el envelope de errores para validación, autenticación, permisos, proveedor y errores internos
 
 ---
 

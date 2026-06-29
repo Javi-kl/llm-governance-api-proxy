@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}LLM Governance Proxy{% endblock %}
+
+{% block content %}
+<section class="landing-container" aria-labelledby="landing-title">
+    <h1 id="landing-title" class="landing-project-title">LLM Governance Proxy</h1>
+    <h2 class="landing-heading">
+        Controla el uso de IA antes de enviar datos a un proveedor externo.
+    </h2>
+
+    <p class="landing-description">
+        Detecta información sensible, aplica políticas de allow / mask / block
+        y registra auditoría mínima sin guardar las conversaciones.
+    </p>
+
+    <a href="/login" class="btn-primary landing-login-link">Entrar a la demo</a>
+
+    <p class="landing-meta">Demo local: admin · AdminDemo123!</p>
+    <p class="landing-meta">API técnica disponible en <a href="/docs">/docs</a></p>
+</section>
+{% endblock %}

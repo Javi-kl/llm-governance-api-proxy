@@ -25,7 +25,7 @@ Tres capas con responsabilidades estrictas:
 | **Auth** | Router + Service + Dependencies | Login con JWT, refresh, creación/desactivación de usuarios |
 | **Detector** | Service | Pipeline de 3 capas: regex endurecido → validación algorítmica (checksum) → exclusión por contexto negativo. Devuelve posiciones exactas de cada coincidencia para el enmascarado. Ver ADR-14. |
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
-| **Provider** | Service | Reenvía el array `messages` saneado (con marcadores si hubo mask + system de privacidad) al LLM externo y devuelve la respuesta del assistant |
+| **Provider** | Core | Reenvía el array `messages` saneado (con marcadores si hubo mask + system de privacidad) al LLM externo y devuelve la respuesta del assistant |
 | **Chat** | Service + Router | Orquestador para `/api/v1/chat`: recibe array `messages` → detector (re-detecta y sanea todo el array, no solo el último user) → policy → provider → logger → respuesta. Ver ADR-15. |
 | **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros |
 | **Scheduler** | Core | APScheduler: ejecuta limpieza de retención cada 24h |
@@ -61,7 +61,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 │ Policy                           │
 │  contacto → mask                 │
 │  (block > mask > allow)          │
-│  Si mask: inyecta/actualiza      │
+│  Si mask: inyecta mensaje        │
 │  system con instrucción de       │
 │  marcadores                      │
 └───┬──────────┬──────────┬───────┘
@@ -137,28 +137,6 @@ Cliente (navegador, Gradio, OpenWebUI...)
 └──────────────────────────────────────────────┘
 ```
 
-### Producción (futuro)
-
-```
-┌──────────────────────────────────────────────┐
-│  VPS / servidor                              │
-│                                              │
-│  Internet                                    │
-│     │                                        │
-│     ▼                                        │
-│  ┌──────────────────┐                        │
-│  │ nginx            │ ← TLS, proxy inverso  │
-│  │ puerto 443       │                        │
-│  └───┬──────────┬───┘                        │
-│      │          │                             │
-│      ▼          ▼                             │
-│  ┌────────┐ ┌──────────┐ ┌──────────────┐   │
-│  │ /api/* │ │ /*       │ │ postgres:16   │   │
-│  │ proxy  │ │ frontend │ │               │   │
-│  │ :8000  │ │ estático │ └───────────────┘   │
-│  └────────┘ └──────────┘                     │
-└──────────────────────────────────────────────┘
-```
 
 ---
 
@@ -171,25 +149,18 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 **Decisiones tomadas:**
 - Login único en `/login`. Redirección automática por rol: `user` → `/chat`, `admin` → `/dashboard`. La seguridad reside en los roles y el middleware `require_admin`, no en duplicar pantallas de login. Ver RF-18.
-- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs). Implementación prevista con Jinja2 + HTMX, pendiente de construir.
-
-**Decisiones pendientes (no tomadas aún):**
-- Diseño concreto del dashboard admin (layout, navegación, componentes).
-- UI final para audit logs.
-- Informe de cumplimiento (RF-19) — pospuesto a Beta.
-- Integración definitiva con OpenWebUI como UI de chat definitiva.
+- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs). Implementado con Jinja2 + HTMX.
 
 **Trade-off:** Gradio no implementa auto-refresh del access token — si el token expira durante una sesión de chat, el usuario debe reautenticarse manualmente (ver TD-003). Gradio es pesado (~150 MB en disco) para una demo temporal; aceptable porque se prevé reemplazarlo en Beta. Jinja2 + HTMX escala mal si el número de pantallas crece mucho, pero para login + admin básico es suficiente.
 
 ---
+### ADR-2: CORS para clientes web externos; sin Nginx en el MVP
 
-### ADR-2: CORS local, Nginx solo en producción
+**Qué:** CORS se mantiene habilitado para permitir pruebas desde clientes web externos en desarrollo, por ejemplo una UI separada u OpenWebUI ejecutándose en otro puerto. No se incluye Nginx en el MVP.
 
-**Qué:** En local, CORS en FastAPI. Nginx no se toca. En producción, Nginx como proxy inverso y CORS fuera.
+**Por qué:** La UI actual y la API se sirven desde FastAPI en `localhost:8000`, por lo que CORS no es necesario para el uso local básico. Sin embargo, sí será útil si un cliente web externo llama a la API desde otro origen. Nginx no aporta valor al MVP local y añadiría complejidad de infraestructura.
 
-**Por qué:** En local hay dos orígenes (puertos distintos) → CORS obligatorio. Nginx en local es un contenedor extra sin valor para el MVP.
-
-**Trade-off:** Al desplegar en producción hay que añadir Nginx (~20 líneas de config) y quitar CORS. El frontend no cambia porque usa URLs relativas.
+**Trade-off:** El despliegue queda orientado a ejecución local o infraestructura privada con Docker Compose. Si en el futuro se publica en internet, habría que diseñar explícitamente HTTPS, proxy inverso, aislamiento de secretos, límites de uso y modelo multiempresa.
 
 ---
 
@@ -215,7 +186,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ### ADR-5: JWT access token (1h) + refresh token en BD
 
-**Qué:** Access token JWT en cookie HttpOnly (1 hora, claims: `user_id`, `role`). Refresh token en BD para renovar sin pedir credenciales.
+**Qué:** Access token JWT en cookie HttpOnly (1 hora, claims: `sub`, `role`). Refresh token en BD para renovar sin pedir credenciales.
 
 **Por qué:** 1 hora limita la ventana de riesgo si un admin desactiva un usuario. Tras caducar, el refresh token invalidado en BD impide renovar. Sin consulta a BD por petición (solo firma JWT).
 
@@ -237,7 +208,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 **Qué:** Un solo proveedor LLM configurado por variables de entorno (`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`). El cliente no elige proveedor en la petición.
 
-**Por qué:** MVP simple. Multi-proveedor añade routing, failover y mapeo de esquemas de respuesta distintos sin valor para demostrar el concepto. El endpoint recibe `prompt` y lo demás lo resuelve el proxy.
+**Por qué:** MVP simple. Multi-proveedor añade routing, failover y mapeo de esquemas de respuesta distintos sin valor para demostrar el concepto. El endpoint recibe array `messages` y lo demás lo resuelve el proxy.
 
 **Trade-off:** Si el proveedor cae, el proxy no funciona. Para MVP es aceptable — cambiar de proveedor es cambiar variables de entorno y reiniciar.
 
