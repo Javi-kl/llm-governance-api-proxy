@@ -1,0 +1,35 @@
+from datetime import datetime
+
+from sqlalchemy import select, update
+from sqlalchemy.orm import Session
+
+from app.db.models.refresh_token import RefreshToken
+
+
+def create(
+    user_id: int, token_hash: str, expires_at: datetime, db: Session
+) -> RefreshToken:
+    token = RefreshToken(user_id=user_id, token_hash=token_hash, expires_at=expires_at)
+    db.add(token)
+    db.flush()
+    return token
+
+
+def get_by_hash(token_hash: str, db: Session) -> RefreshToken | None:
+    return db.execute(
+        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    ).scalar_one_or_none()
+
+
+def revoke(token: RefreshToken, db: Session) -> None:
+    token.revoked = True
+    db.flush()
+
+
+def revoke_all_for_user(user_id: int, db: Session) -> None:
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+    db.flush()

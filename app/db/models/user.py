@@ -1,17 +1,18 @@
-import enum
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.sqltypes import Boolean
 
+from app.core.enums import UserRole
 from app.db.database import Base
 
-
-class UserRole(str, enum.Enum):
-    USER = "user"
-    ADMIN = "admin"
+if TYPE_CHECKING:
+    from app.db.models.refresh_token import RefreshToken
 
 
 class User(Base):
@@ -28,4 +29,8 @@ class User(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )

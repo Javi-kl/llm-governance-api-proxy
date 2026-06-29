@@ -1,0 +1,617 @@
+/* LLM Governance Proxy — Tema oscuro turquesa */
+
+/* ── Variables ──────────────────────────────────── */
+:root {
+    --bg: #111827;
+    --surface: #1f2937;
+    --surface-muted: #273447;
+    --filter-bg: #172033;
+    --text: #00CED1;
+    --text-muted: #7eb8da;
+    --text-dim: #4a6a8a;
+    --border: #374151;
+    --border-light: #4b5563;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --danger-active: #991b1b;
+    --radius: 8px;
+    --radius-sm: 6px;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --transition: 0.15s ease;
+}
+
+/* ── Reset y base ──────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+main {
+    width: 100%;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ── Cards y contenedores ──────────────────────── */
+.login-form,
+.dashboard-container,
+.logs-container,
+.users-container {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 2rem;
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.landing-container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 3rem 3.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.landing-project-title {
+    margin: 0 0 1.5rem 0;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.landing-heading {
+    max-width: 680px;
+    margin: 0 auto 1.25rem auto;
+    color: var(--text);
+    font-size: clamp(1.35rem, 3vw, 2.1rem);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.landing-description {
+    max-width: 640px;
+    margin: 0 auto 2.25rem auto;
+    color: var(--text-muted);
+    font-size: 1.15rem;
+    line-height: 1.6;
+}
+
+.landing-meta {
+    margin: 0.75rem 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.landing-meta a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.landing-meta a:hover {
+    text-decoration: underline;
+}
+
+.login-container h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.dashboard-container {
+    max-width: 800px;
+    margin: 2rem auto;
+}
+
+.dashboard-container h1 {
+    margin-bottom: 1rem;
+}
+
+.dashboard-container p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.logs-container {
+    max-width: 1100px;
+    margin: 2rem auto;
+}
+
+.users-container {
+    max-width: 1100px;
+    margin: 2rem auto;
+}
+
+.logs-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.users-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.users-header h1 {
+    margin: 0 0 0.35rem 0;
+}
+
+.users-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.logs-header h1 {
+    margin: 0;
+}
+
+/* ── Formularios ───────────────────────────────── */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label,
+.logs-filter-group label {
+    display: block;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    margin-bottom: 0.375rem;
+}
+
+.logs-filter-group label {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Inputs y selects — apariencia compartida */
+.form-group input,
+.logs-filter-group select,
+.logs-filter-group input,
+.users-inline-form input {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    background: var(--surface-muted);
+    color: var(--text);
+    transition: border-color var(--transition);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+}
+
+.logs-filter-group select,
+.logs-filter-group input {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.logs-filter-group select:focus,
+.logs-filter-group input:focus,
+.users-inline-form input:focus {
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px rgba(0, 206, 209, 0.15);
+}
+
+/* ── Errores ───────────────────────────────────── */
+.error-message,
+.filter-error {
+    background: #3d0a0a;
+    color: #f87171;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    border: 1px solid #5c1a1a;
+}
+
+.error-message {
+    margin-bottom: 1rem;
+}
+
+.filter-error {
+    margin-bottom: 0.75rem;
+}
+
+.success-message {
+    background: #063b2d;
+    color: #34d399;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    border: 1px solid #0f5f49;
+    margin-bottom: 1rem;
+}
+
+/* ── Botones ───────────────────────────────────── */
+.btn-primary,
+.btn-danger,
+.btn-secondary {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+        background-color var(--transition),
+        border-color var(--transition);
+    border: none;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    width: 100%;
+    font-size: 1rem;
+    color: var(--bg);
+    background-color: var(--text);
+}
+
+.landing-login-link {
+    width: fit-content;
+    min-width: 0;
+    margin: 0 auto;
+}
+
+.btn-primary:hover {
+    background-color: #00b4ba;
+}
+
+.btn-primary:active {
+    background-color: #009ea3;
+}
+
+.logs-filter-actions .btn-primary {
+    width: auto;
+    padding: 0.5rem 1.5rem;
+}
+
+.btn-danger {
+    padding: 0.625rem 1.25rem;
+    color: #ffffff;
+    background-color: var(--danger);
+}
+
+.btn-danger:hover {
+    background-color: var(--danger-hover);
+}
+
+.btn-danger:active {
+    background-color: var(--danger-active);
+}
+
+.btn-secondary {
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--surface-muted);
+    border-color: var(--border-light);
+}
+
+.btn-primary:disabled,
+.btn-danger:disabled,
+.btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* ── Dashboard ─────────────────────────────────── */
+.dashboard-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+}
+
+.dashboard-nav li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.dashboard-nav li:last-child {
+    border-bottom: none;
+}
+
+.dashboard-nav a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.dashboard-nav a:hover {
+    text-decoration: underline;
+    color: #33d9de;
+}
+
+.dashboard-nav span {
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+.dashboard-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+/* ── Enlace volver ─────────────────────────────── */
+.logs-back-link,
+.users-back-link {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.logs-back-link:hover,
+.users-back-link:hover {
+    text-decoration: underline;
+    color: #33d9de;
+}
+
+/* ── Logs de auditoría ─────────────────────────── */
+.logs-summary,
+.users-summary {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.logs-summary {
+    margin-bottom: 1rem;
+}
+
+.users-summary {
+    margin: 0;
+}
+
+.logs-empty,
+.users-empty {
+    background: var(--surface-muted);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.logs-table-wrapper,
+.users-table-wrapper {
+    overflow-x: auto;
+}
+
+.logs-table,
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.logs-table th,
+.users-table th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    background: var(--filter-bg);
+    color: var(--text);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+}
+
+.logs-table td,
+.users-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.logs-table td {
+    vertical-align: top;
+}
+
+.users-table td {
+    vertical-align: middle;
+}
+
+.logs-table tbody tr:hover,
+.users-table tbody tr:hover {
+    background: var(--filter-bg);
+}
+
+.mono {
+    font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+    font-size: 0.8rem;
+    max-width: 260px;
+    word-break: break-all;
+}
+
+/* ── Badges ────────────────────────────────────── */
+.log-action,
+.log-status,
+.user-status {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.log-action,
+.user-status {
+    text-transform: uppercase;
+}
+
+.log-action--allow {
+    background: #064e3b;
+    color: #34d399;
+}
+
+.log-action--mask {
+    background: #78350f;
+    color: #fbbf24;
+}
+
+.log-action--block {
+    background: #7f1d1d;
+    color: #f87171;
+}
+
+.log-action--error {
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+.log-status--success {
+    background: #064e3b;
+    color: #34d399;
+}
+
+.log-status--provider_error {
+    background: #7f1d1d;
+    color: #f87171;
+}
+
+/* ── Filtros de logs ───────────────────────────── */
+.logs-filters {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--filter-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.logs-filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.logs-filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.logs-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+/* ── Gestión de usuarios ───────────────────────── */
+.users-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.users-create-card {
+    padding: 1rem;
+    background: var(--filter-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.users-create-card h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.users-create-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px) auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.users-create-form .form-group {
+    margin-bottom: 0;
+}
+
+.users-create-form .btn-primary {
+    width: auto;
+    white-space: nowrap;
+}
+
+.users-inline-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.users-inline-form input {
+    width: 9rem;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.875rem;
+}
+
+.users-inline-form input:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.user-status--active {
+    background: #064e3b;
+    color: #34d399;
+}
+
+.user-status--inactive {
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+@media (max-width: 760px) {
+    .users-header {
+        flex-direction: column;
+    }
+
+    .users-create-form {
+        grid-template-columns: 1fr;
+    }
+
+    .users-create-form .btn-primary {
+        width: 100%;
+    }
+}

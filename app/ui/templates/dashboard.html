@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Panel de administración — LLM Governance Proxy{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>Panel de administración</h1>
+
+    <p>Bienvenido, <strong>{{ user.username }}</strong>.</p>
+
+    <nav class="dashboard-nav">
+        <ul>
+            <li><a href="/chat">Ir al chat</a></li>
+            <li><a href="/dashboard/users">Gestión de usuarios</a></li>
+            <li><a href="/dashboard/logs">Logs de auditoría</a></li>
+        </ul>
+    </nav>
+
+    <div class="dashboard-actions">
+        <button class="btn-danger"
+                hx-post="/api/v1/auth/logout"
+                hx-swap="none">
+            Cerrar sesión
+        </button>
+    </div>
+</div>
+{% endblock %}

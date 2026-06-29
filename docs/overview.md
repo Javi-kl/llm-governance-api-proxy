@@ -1,6 +1,7 @@
 ## Contexto
 
-Las pymes y autónomos europeos usan cada vez más LLMs (ChatGPT, Claude, etc.) en su día a día. Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos. Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
+Las empresas europeas usan cada vez más LLMs. Pero los empleados pueden introducir sin querer datos personales de clientes, compañeros o proveedores en los prompts. GDPR y AI Act exigen control sobre esos datos.
+Este proxy se sitúa entre el usuario y el LLM para inspeccionar, enmascarar o bloquear información sensible antes de que salga de la empresa.
 
 ## Objetivo del MVP
 
@@ -10,7 +11,7 @@ Un proxy local que:
 - Detecta datos sensibles antes de enviarlos (DNI, email, IBAN, etc.)
 - Aplica políticas automáticas: enmascara o bloquea según la categoría
 - Registra metadatos de cada solicitud para auditoría (sin guardar el contenido)
-- Ofrece una UI web sencilla (chat + panel admin) y documentación Swagger
+- Ofrece una UI web ligera para login y chat demo, API REST para administración, y documentación Swagger
 
 ## Casos de uso cubiertos
 
@@ -21,16 +22,17 @@ Un proxy local que:
 
 ## Alcance del MVP
 
-- Proxy API con endpoint `/api/v1/chat` y endpoint compatible OpenAI `/v1/chat/completions`
+- Proxy API con endpoint `/api/v1/chat` (multi-turn, contrato propio).
 - Detección por regex de 3 categorías: identificación, contacto, financiero
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
 - Bootstrap del primer admin al desplegar
-- Gestión de usuarios normales desde panel admin (crear, desactivar, resetear PIN). Un único admin; no se crean admins adicionales desde la interfaz.
+- Gestión de usuarios normales vía API de administración (crear, desactivar, resetear PIN). Un único admin;
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
 - Health check, rate limit en login, errores controlados
-- Informe de cumplimiento descargable para auditorías
 - Despliegue con Docker Compose
+- UI de chat demo con gradio renderizada desde el backend con htmx y jinja.
+
 
 ## Fuera de alcance
 
@@ -44,101 +46,96 @@ Un proxy local que:
 ## Roadmap
 
 ### MVP
-- [ ] Proxy API funcional con endpoint /chat
-- [ ] Detección regex de 3 categorías (identificación, contacto, financiero)
-- [ ] Política mask/block por categoría
-- [ ] Autenticación (PIN user, password admin)
-- [ ] Bootstrap del primer admin
-- [ ] Gestión de usuarios normales desde panel admin (rol user únicamente)
-- [ ] Logs de auditoría (sin prompts/respuestas, retención 90 días)
-- [ ] Health check y rate limit en login
-- [ ] Informe de cumplimiento
-- [ ] UI vanilla (chat + panel admin)
-- [ ] Compatibilidad OpenAI API para integrar con Open WebUI
-- [ ] Docker Compose + .env.example
+- [X] Proxy API funcional con endpoint /api/v1/chat
+- [X] Detección regex de 3 categorías (identificación, contacto, financiero)
+- [X] Política mask/block por categoría
+- [X] Autenticación (PIN user, password admin)
+- [X] Bootstrap del primer admin
+- [X] Gestión de usuarios normales vía API de administración (rol user únicamente)
+- [X] Logs de auditoría (sin prompts/respuestas, retención 90 días)
+- [X] Health check y rate limit en login
+- [X] Login web único en /login (Jinja2 + HTMX)
+- [X] Redirección automática por rol tras login (user → /chat, admin → /dashboard)
+- [X] Chat demo Gradio en /chat (demo temporal)
+- [X] Dashboard admin con enlaces a herramientas administrativas (Jinja2 + HTMX)
+- [X] Docker Compose + .env.example
 
 ### Beta
+- [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
 - [ ] Migrar detector a Presidio
-- [ ] Más categorías (salud, legal)
-- [ ] Persistencia de conversaciones
-
-### Producto
-- [ ] Multi-proveedor
-- [ ] Panel de estadísticas
-- [ ] Nginx en producción
-- [ ] Tests de carga
+- [ ] Compatibilidad OpenAI API (Prioridad)
+- [ ] Detectar prompt injection
 
 ---
 
 ## Esqueleto
 
 ```text
-frontend/
-├── index.html          ← Login (dos secciones: user | admin)
-├── pages/
-│   ├── chat.html       ← Chat del usuario normal
-│   └── admin.html      ← Panel admin
-├── css/
-│   └── style.css       ← Estilos globales
-└── js/
-    ├── config.js       ← URL base de la API (/api/v1)
-    ├── api.js          ← Wrapper de fetch(): get(), post(), put(), del()
-    ├── auth.js         ← login(), logout(), checkSession()
-    ├── chat.js         ← Lógica del chat
-    └── admin.js        ← Lógica del panel admin
-
 app/
-├── main.py              ← Crea la app, registra routers, arranca APScheduler
-├── core/
-│   ├── config.py        ← Settings con pydantic-settings (lee .env)
-│   ├── security.py      ← Argon2id, firma/verificación JWT
-│   ├── exceptions.py    ← Errores HTTP controlados (RF-8)
-│   ├── scheduler.py     ← APScheduler: limpieza de retención (ADR-9)
-│   └── rate_limit.py    ← Bloqueo por IP en login (RF-16)
+├── main.py                 ← Crea la app, registra routers, estáticos, Gradio y scheduler
+├── core/                   ← Configuración, seguridad, errores, cookies, rate limit y proveedor LLM
+│   ├── config.py
+│   ├── security.py
+│   ├── provider.py
+│   ├── scheduler.py
+│   └── ...
 ├── db/
-│   ├── database.py      ← Engine, SessionLocal, Base, get_db
+│   ├── database.py         ← Engine, SessionLocal, Base y helpers de sesión
 │   └── models/
-│       ├── user.py       ← User (username, pin_hash/password_hash, role, active)
-│       ├── session.py    ← RefreshToken (user_id, token_hash, expires_at)
-│       └── audit_log.py  ← AuditLog (request_id, timestamp, user_id, action...)
+│       ├── user.py         ← Usuario, rol y credenciales hasheadas
+│       ├── refresh_token.py ← Refresh tokens persistidos
+│       └── audit_log.py    ← Metadatos de auditoría
 ├── dependencies/
-│   └── auth_deps.py     ← get_current_user: extrae JWT de cookie, retorna User
+│   └── auth_dep.py         ← Dependencias de autenticación y permisos
 ├── repositories/
-│   ├── user_repo.py     ← create, get_by_username, get_by_id, update, deactivate
-│   ├── session_repo.py  ← create, get, delete, delete_by_user_id
-│   └── audit_repo.py    ← create, list (con filtros y paginación)
+│   ├── users.py            ← Acceso a datos de usuarios
+│   ├── refresh_tokens.py   ← Acceso a datos de sesiones
+│   └── audit_logs.py       ← Acceso a datos de auditoría
 ├── schemas/
-│   ├── auth.py          ← LoginRequest, UserCreate, UserResponse
-│   ├── chat.py          ← ChatRequest, ChatResponse
-│   ├── admin.py         ← UserManagement, AuditLogFilter, ComplianceReport
-│   └── error.py         ← ErrorResponse (code, message, details)
+│   ├── auth.py             ← Schemas de autenticación
+│   ├── chat.py             ← Schemas del endpoint de chat
+│   ├── admin.py            ← Schemas de administración y auditoría
+│   ├── user.py             ← Schemas de usuario
+│   └── error.py            ← Schemas de error
 ├── services/
-│   ├── auth_service.py  ← login, logout, refresh, create_user, reset_pin
-│   ├── detector.py      ← Escanea prompt con regex (ADR-8)
-│   ├── policy.py        ← Decide acción por categoría (ADR-3)
-│   ├── provider.py      ← Reenvía al LLM externo (ADR-7)
-│   ├── chat_service.py  ← Orquestador: detector → policy → provider → logger
-│   ├── audit_service.py ← Guarda logs, consulta con filtros, genera informe (RF-19)
-│   └── scheduler_service.py ← Lógica SQL de limpieza de retención
+│   ├── auth.py             ← Login, logout, refresh y cookies
+│   ├── admin.py            ← Gestión de usuarios
+│   ├── chat.py             ← Orquestación detector → policy → provider → audit
+│   ├── detector.py         ← Detección regex de datos sensibles
+│   ├── policy.py           ← Decisión allow/mask/block
+│   ├── audit.py            ← Creación y consulta de logs
+│   └── scheduler.py        ← Limpieza de retención
 ├── routers/
-│   ├── auth_router.py   ← /api/v1/auth/*
-│   ├── chat_router.py   ← /api/v1/chat
-│   ├── admin_router.py  ← /api/v1/admin/*
-│   └── health_router.py ← /api/v1/health
-└── templates/           ← (vacío — el frontend se sirve aparte)
+│   ├── auth.py             ← Endpoints /api/v1/auth/*
+│   ├── chat.py             ← Endpoint /api/v1/chat
+│   ├── admin.py            ← Endpoints /api/v1/admin/*
+│   ├── health.py           ← Endpoint /api/v1/health
+│   └── web/
+│       ├── login.py        ← Página de login
+│       ├── dashboard.py    ← Panel principal de admin
+│       ├── users.py        ← Gestión web de usuarios
+│       ├── audit_logs.py   ← Consulta web de logs
+│       └── common.py       ← Helpers comunes de rutas web
+└── ui/
+    ├── gradio_chat.py      ← Chat demo montado en /chat
+    ├── templates.py        ← Configuración de Jinja2
+    ├── templates/          ← Plantillas HTML
+    └── static/             ← CSS y recursos estáticos
 
 tests/
-├── conftest.py
-├── test_auth.py
-├── test_chat.py
-├── test_detector.py
-├── test_policy.py
-├── test_admin.py
-└── test_health.py
+├── core/
+├── dependencies/
+├── repositories/
+├── routers/
+├── schemas/
+├── services/
+├── ui/
+└── conftest.py
 
 scripts/
-└── entrypoint.sh        ← Migraciones + arranque uvicorn
+├── entrypoint.sh           ← Migraciones + arranque uvicorn
+└── init-test-db.sh         ← Inicialización de base de datos de test
 
 .env.example
-docker-compose.yml       ← proxy + PostgreSQL
+docker-compose.yml          ← App + PostgreSQL para ejecución local
 ```

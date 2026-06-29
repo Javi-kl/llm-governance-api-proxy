@@ -23,17 +23,18 @@ Tres capas con responsabilidades estrictas:
 | Componente | Capa | Responsabilidad |
 |---|---|---|
 | **Auth** | Router + Service + Dependencies | Login con JWT, refresh, creación/desactivación de usuarios |
-| **Detector** | Service | Escanea el prompt con regex, devuelve categorías detectadas |
+| **Detector** | Service | Pipeline de 3 capas: regex endurecido → validación algorítmica (checksum) → exclusión por contexto negativo. Devuelve posiciones exactas de cada coincidencia para el enmascarado. Ver ADR-14. |
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
-| **Provider** | Service | Reenvía el prompt (original o enmascarado) al LLM externo |
-| **Chat** | Service + Router | Orquestador para ambos endpoints (`/api/v1/chat` y `/v1/chat/completions`): recibe prompt → detector → policy → provider → logger → respuesta |
-| **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros, genera informe (RF-19) |
+| **Provider** | Core | Reenvía el array `messages` saneado (con marcadores si hubo mask + system de privacidad) al LLM externo y devuelve la respuesta del assistant |
+| **Chat** | Service + Router | Orquestador para `/api/v1/chat`: recibe array `messages` → detector (re-detecta y sanea todo el array, no solo el último user) → policy → provider → logger → respuesta. Ver ADR-15. |
+| **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros |
 | **Scheduler** | Core | APScheduler: ejecuta limpieza de retención cada 24h |
 
 ## Flujo de una solicitud
 ```
-Cliente
-  │  POST /api/v1/chat { prompt }
+Cliente (navegador, Gradio, OpenWebUI...)
+  │  POST /api/v1/chat { messages: [{role, content}, ...] }
+  │  (array completo, no solo el último turno)
   ▼
 ┌─────────────────────────────────┐
 │ Middleware                       │
@@ -42,43 +43,63 @@ Cliente
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
+│ Chat Service                     │
+│  Extrae array `messages`         │
+│  (validación: ≥1 mensaje user)   │
+└───────────────┬─────────────────┘
+                ▼
+┌─────────────────────────────────┐
 │ Detector                         │
-│  Regex scan del prompt           │
+│  Re-detecta y sanea TODOS los    │
+│  mensajes con rol `user` del     │
+│  array (no solo el último).      │
 │  → ["contacto"]                  │
+│  Ver ADR-15.                     │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
 │ Policy                           │
 │  contacto → mask                 │
 │  (block > mask > allow)          │
+│  Si mask: inyecta mensaje        │
+│  system con instrucción de       │
+│  marcadores                      │
 └───┬──────────┬──────────┬───────┘
     ▼          ▼          ▼
   ALLOW      MASK       BLOCK
     │          │          │
     │     ┌────▼────┐     │
-    │     │Enmascara│     │
+    │     │Array    │     │
+    │     │saneado: │     │
     │     │[EMAIL]  │     │
     │     │+ system │     │
-    │     │ prompt  │     │
+    │     │ marker  │     │
     │     └────┬────┘     │
     ▼          ▼          │
 ┌─────────────────┐       │
 │ Provider         │       │
 │ POST → LLM API   │       │
+│ messages array   │       │
+│ (saneado, sin    │       │
+│  persistir nada) │       │
 │ ← respuesta      │       │
 └────────┬─────────┘       │
          ▼                 ▼
 ┌─────────────────────────────────┐
 │ Logger                           │
 │  INSERT audit_logs               │
-│  (request_id, user, action, ...) │
+│  (request_id, user, action,     │
+│   detected_categories, ...)      │
 │  SIN prompt ni respuesta         │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
 │ Respuesta JSON                   │
-│  { request_id, action, ... }    │
-│  Frontend decide qué mostrar     │
+│  { request_id, action,          │
+│    message, ... }                │
+│  UI guarda turno en localStorage│
+│  si allow/mask; no guarda       │
+│  si block.                       │
 └─────────────────────────────────┘
 ```
 
@@ -87,11 +108,12 @@ Cliente
 
 ```
 ┌──────────────────────────────────────────────┐
-│  docker-compose.yml                          │
+│  Desarrollo local                            │
 │                                              │
 │  ┌──────────────────┐  ┌──────────────────┐ │
-│  │ proxy (uvicorn)  │  │ postgres:16      │ │
-│  │ puerto 8000      │──│ puerto 5432      │ │
+│  │ uvicorn local    │  │ postgres:16      │ │
+│  │ app.main:app     │──│ docker compose   │ │
+│  │ puerto 8000      │  │ puerto 5432      │ │
 │  │                  │  │                  │ │
 │  │ FastAPI +        │  │ DB: proxy_db     │ │
 │  │ APScheduler      │  │ Tablas: users,   │ │
@@ -105,54 +127,42 @@ Cliente
 │                          └────────────────┘ │
 │                                              │
 │  ┌──────────────────┐                        │
-│  │ frontend/        │  ↔ fetch() a :8000   │
-│  │ HTML/CSS/JS      │    con CORS          │
-│  │ (Live Server)    │                        │
+│  │ Navegador        │  ↔ :8000              │
+│  │                  │                        │
+│  │ /          → redir│ (login/chat)          │
+│  │ /login     → login│ (Jinja2 + HTMX)       │
+│  │ /chat      → chat │ (Gradio demo)         │
+│  │ /api/v1/*  → REST │ (fetch/JSON)          │
 │  └──────────────────┘                        │
 └──────────────────────────────────────────────┘
 ```
 
-### Producción (futuro)
-
-```
-┌──────────────────────────────────────────────┐
-│  VPS / servidor                              │
-│                                              │
-│  Internet                                    │
-│     │                                        │
-│     ▼                                        │
-│  ┌──────────────────┐                        │
-│  │ nginx            │ ← TLS, proxy inverso  │
-│  │ puerto 443       │                        │
-│  └───┬──────────┬───┘                        │
-│      │          │                             │
-│      ▼          ▼                             │
-│  ┌────────┐ ┌──────────┐ ┌──────────────┐   │
-│  │ /api/* │ │ /*       │ │ postgres:16   │   │
-│  │ proxy  │ │ frontend │ │               │   │
-│  │ :8000  │ │ estático │ └───────────────┘   │
-│  └────────┘ └──────────┘                     │
-└──────────────────────────────────────────────┘
-```
 
 ---
 
 ## ADRs
-### ADR-1: Frontend vanilla JS
+### ADR-1: UI server-rendered ligera + chat demo temporal
 
-**Qué:** HTML, CSS y JS sin framework. Sin npm, sin build. Archivos estáticos servidos aparte del backend.
+**Qué:** Pantallas internas simples servidas por FastAPI con Jinja2 + HTMX (p.ej. raíz `/` como redirección y login web en `/login`). El chat de usuario se ofrece como demo temporal con Gradio montado en `/chat`. La API REST sigue siendo el núcleo del producto bajo `/api/v1/*`.
 
-**Por qué:** MVP pequeño (3 pantallas). `fetch()` a la API REST cubre toda la comunicación. Un framework añade complejidad que hoy no se necesita.
+**Por qué:** Para el MVP, Jinja2 + HTMX evita un build frontend separado y mantiene toda la lógica de sesión en el servidor (cookies HttpOnly). Gradio ofrece un chat funcional con ~10 líneas de integración, suficiente como demo mientras se evalúa OpenWebUI u otra UI definitiva. La API REST es independiente de la UI: cualquier cliente (Gradio, OpenWebUI, frontend estático futuro) se comunica por `/api/v1/*`.
 
-**Trade-off:** Sin componentes ni router. Si el proyecto crece a +10 pantallas, migrar a Vue/Svelte.
+**Decisiones tomadas:**
+- Login único en `/login`. Redirección automática por rol: `user` → `/chat`, `admin` → `/dashboard`. La seguridad reside en los roles y el middleware `require_admin`, no en duplicar pantallas de login. Ver RF-18.
+- Dashboard admin como puerta de entrada a herramientas administrativas (gestión de usuarios, audit logs). Implementado con Jinja2 + HTMX.
 
-### ADR-2: CORS local, Nginx solo en producción
+**Trade-off:** Gradio no implementa auto-refresh del access token — si el token expira durante una sesión de chat, el usuario debe reautenticarse manualmente (ver TD-003). Gradio es pesado (~150 MB en disco) para una demo temporal; aceptable porque se prevé reemplazarlo en Beta. Jinja2 + HTMX escala mal si el número de pantallas crece mucho, pero para login + admin básico es suficiente.
 
-**Qué:** En local, CORS en FastAPI. Nginx no se toca. En producción, Nginx como proxy inverso y CORS fuera.
+---
+### ADR-2: CORS para clientes web externos; sin Nginx en el MVP
 
-**Por qué:** En local hay dos orígenes (puertos distintos) → CORS obligatorio. Nginx en local es un contenedor extra sin valor para el MVP.
+**Qué:** CORS se mantiene habilitado para permitir pruebas desde clientes web externos en desarrollo, por ejemplo una UI separada u OpenWebUI ejecutándose en otro puerto. No se incluye Nginx en el MVP.
 
-**Trade-off:** Al desplegar en producción hay que añadir Nginx (~20 líneas de config) y quitar CORS. El frontend no cambia porque usa URLs relativas.
+**Por qué:** La UI actual y la API se sirven desde FastAPI en `localhost:8000`, por lo que CORS no es necesario para el uso local básico. Sin embargo, sí será útil si un cliente web externo llama a la API desde otro origen. Nginx no aporta valor al MVP local y añadiría complejidad de infraestructura.
+
+**Trade-off:** El despliegue queda orientado a ejecución local o infraestructura privada con Docker Compose. Si en el futuro se publica en internet, habría que diseñar explícitamente HTTPS, proxy inverso, aislamiento de secretos, límites de uso y modelo multiempresa.
+
+---
 
 ### ADR-3: Política de detección en código
 
@@ -162,6 +172,8 @@ Cliente
 
 **Trade-off:** Añadir categorías requiere redesplegar. Aceptable para un catálogo cerrado por diseño.
 
+---
+
 ### ADR-4: Logs técnicos y de auditoría separados
 
 **Qué:** Técnicos → stdout. Auditoría → tabla en PostgreSQL. Canales independientes.
@@ -170,13 +182,17 @@ Cliente
 
 **Trade-off:** Dos sistemas de logging. Coste mínimo: Python logger + inserción en BD.
 
+---
+
 ### ADR-5: JWT access token (1h) + refresh token en BD
 
-**Qué:** Access token JWT en cookie HttpOnly (1 hora, claims: `user_id`, `role`). Refresh token en BD para renovar sin pedir credenciales.
+**Qué:** Access token JWT en cookie HttpOnly (1 hora, claims: `sub`, `role`). Refresh token en BD para renovar sin pedir credenciales.
 
 **Por qué:** 1 hora limita la ventana de riesgo si un admin desactiva un usuario. Tras caducar, el refresh token invalidado en BD impide renovar. Sin consulta a BD por petición (solo firma JWT).
 
 **Trade-off:** Hasta 1 hora de ventana con token válido tras desactivación. Para un MVP con pocos usuarios, aceptable.
+
+---
 
 ### ADR-6: Argon2id para hashing de credenciales
 
@@ -186,13 +202,17 @@ Cliente
 
 **Trade-off:** Verificación más lenta que bcrypt (~ms extra). Imperceptible para un login interactivo.
 
+---
+
 ### ADR-7: Proveedor LLM único
 
 **Qué:** Un solo proveedor LLM configurado por variables de entorno (`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`). El cliente no elige proveedor en la petición.
 
-**Por qué:** MVP simple. Multi-proveedor añade routing, failover y mapeo de esquemas de respuesta distintos sin valor para demostrar el concepto. El endpoint recibe `prompt` y lo demás lo resuelve el proxy.
+**Por qué:** MVP simple. Multi-proveedor añade routing, failover y mapeo de esquemas de respuesta distintos sin valor para demostrar el concepto. El endpoint recibe array `messages` y lo demás lo resuelve el proxy.
 
 **Trade-off:** Si el proveedor cae, el proxy no funciona. Para MVP es aceptable — cambiar de proveedor es cambiar variables de entorno y reiniciar.
+
+---
 
 ### ADR-8: Detección por regex en MVP, migrable a NLP en futuro
 
@@ -200,7 +220,9 @@ Cliente
 
 **Por qué:** Los 3 tipos de datos del MVP (DNI, email, IBAN) tienen formato fijo y predecible. Regex es instantáneo (<1ms), sin descargas de modelos ni dependencias. Cada patrón es explícito y depurable: si hay un falso positivo, se ajusta la expresión. La interfaz del detector se diseña como módulo intercambiable para migrar a Presidio si el catálogo crece a datos sin formato fijo (nombres, direcciones).
 
-**Trade-off:** Solo detecta formato, no contexto. Posibles falsos positivos en teléfono (números sueltos). Si el catálogo se amplía a datos no estructurados, migrar a Presidio — el resto del sistema no cambia porque el detector es un módulo con interfaz fija.
+**Trade-off:** Solo detecta formato, no contexto semántico (NLP). Los falsos positivos se mitigan con validación algorítmica (checksum) y exclusión posicional por contexto negativo — ver ADR-14 para el detalle por categoría. Si el catálogo se amplía a datos no estructurados, migrar a Presidio — el resto del sistema no cambia porque el detector es un módulo con interfaz fija.
+
+---
 
 ### ADR-9: Limpieza de retención con APScheduler
 
@@ -212,23 +234,15 @@ Cliente
 
 ---
 
-### ADR-10: Compatibilidad OpenAI API para Open WebUI
-
-**Qué:** El proxy expone `POST /v1/chat/completions` con el mismo formato que la API de OpenAI. Open WebUI se conecta al proxy como si fuera el proveedor real. El proxy intercepta, escanea, aplica política y reenvía al proveedor configurado.
-
-**Por qué:** Open WebUI es un frontend de chat profesional que las empresas ya usan. Implementar un chat desde cero (RF-10) cubre la demo mínima, pero conectar Open WebUI demuestra que el proxy funciona con herramientas reales sin fricción. El formato OpenAI es el estándar de facto — compatible también con AnythingLLM, LibreChat y otros clientes.
-
-**Trade-off:** Dos endpoints de chat que mantener (`/api/v1/chat` propio + `/v1/chat/completions` compatible). La lógica del proxy (detector, policy, provider, logger) es compartida — solo cambia el adaptador de entrada/salida.
-
 ---
 
-### ADR-11: SlowAPI para rate limiting general + lógica propia en login
+### ADR-11: SlowAPI para rate limiting general
 
-**Qué:** SlowAPI con backend `memory://` como rate limiter general en los endpoints del proxy. El throttle de login (RF-16: 5 fallos → 15 min bloqueo, reset en acierto) se implementa con lógica propia sobre PostgreSQL porque ninguna librería genérica soporta el patrón "reset on success".
+**Qué:** SlowAPI con backend `memory://` como rate limiter general en los endpoints del proxy. Se aplican decoradores `@limiter.limit` en endpoints sensibles (login, change_password). No se implementa throttling por fallos consecutivos en el MVP.
 
-**Por qué:** Son dos problemas distintos. SlowAPI resuelve el rate limiting clásico con decoradores y sin código manual. El throttling de login necesita resetear el contador en acierto — eso solo lo da la lógica propia. Usar PostgreSQL evita añadir Redis solo para esto.
+**Por qué:** Rate limiting clásico (límite de requests por ventana de tiempo) es un problema resuelto. SlowAPI lo cubre con decoradores y sin código manual. El throttling por fallos consecutivos (5 fallos → bloqueo 15 min, reset en acierto) es complejo, requiere estado persistente, y no aporta valor diferenciador al core del proxy.
 
-**Trade-off:** SlowAPI en memoria no comparte estado entre workers, aceptable en MVP single-worker. Si se escala o Redis entra al stack, se cambia `memory://` por `redis://` sin tocar los decoradores, y el throttle de login se migra a un Lua script atómico. La interfaz de `rate_limit.py` no cambia.
+**Trade-off:** SlowAPI en memoria no comparte estado entre workers, aceptable en MVP single-worker. Si se escala o Redis entra al stack, se cambia `memory://` por `redis://` sin tocar los decoradores.
 
 ---
 
@@ -252,6 +266,40 @@ Cliente
 
 ---
 
+### ADR-14: Pipeline de detección con validación algorítmica y exclusión contextual
+
+**Qué:** El detector añade 2 capas sobre el regex base: validación algorítmica (checksum Luhn para tarjetas, MOD 97 para IBAN) y exclusión por contexto negativo (el match se descarta si está precedido por palabras como "pedido" o "factura").
+Dirección postal queda excluida del MVP — requiere NLP, no regex.
+| Patrón | Regex | Validación | Exclusión contextual | Justificación |
+|--------|-------|-----------|---------------------|---------------|
+| DNI | `(?<!\d)\d{8}[A-HJ-NP-TV-Z](?!\d)` | Módulo 23 (pospuesto a Fase 2) | — | El regex ya acota a 20 letras válidas. Solo ~4% de coincidencias aleatorias pasan. Si QA muestra ruido, se añade checksum. |
+| NIF | `(?<!\d)[XYZ]\d{7}[A-HJ-NP-TV-Z](?!\d)` | Módulo 23 (pospuesto a Fase 2) | — | Ídem DNI. |
+| CIF | `\b[A-HJ-NP-SUVW]\d{7}[A-Z0-9]\b` | Algoritmo CIF (pospuesto a Fase 2) | — | La letra inicial válida + dígito de control ya filtran ~70%. |
+| Email | `\b[\w\.-]+@[\w\.-]+\.\w{2,}\b` | — | — | El formato de email es suficientemente restrictivo por sí solo. |
+| Teléfono | `(?<!\d)[6-9]\d{8}(?!\d)` | — | `pedido`, `factura`, `ref`, `albarán`, `id`, `nº`, `expediente`, `caso`, `incidencia`, `ticket` | Números de 9 dígitos aparecen en contextos operativos (nº pedido, nº factura, nº expediente). La exclusión evita enmascarar referencias internas. |
+| CP | `\b(?:CP\|código\s+postal\|cód\.\s*postal)\s*[:#.-]?\s*(\d{5})\b` | — | — | Solo detecta si está explícitamente etiquetado. Cero FP en importes, facturas o referencias. Sacrifica recall: no detecta "28001 Madrid" sin etiqueta. |
+| IBAN | `\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b` | MOD 97 | — | El checksum IBAN es determinista y liviano (~15 líneas). Descarta ~99% de coincidencias aleatorias. |
+| Tarjeta | `\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b` | Luhn (MOD 10) |  | |
+
+**Por qué:** El regex puro produce falsos positivos que degradan la confianza (cualquier número de 5 dígitos como CP, cualquier secuencia de 16 dígitos como tarjeta). Microsoft Presidio valida este mismo pipeline de 3 capas con precisión > 95% en IBAN y tarjeta.
+Los checksums son Python puro, sin dependencias externas — compatibles con ADR-8.
+
+**Trade-off:** Checksums añaden < 0.1ms por validación. La exclusión contextual es frágil (depende de idioma y redacción): puede producir falsos negativos si el usuario escribe "mi pedido fue la tarjeta 4111...". Se acepta falso negativo > falso positivo
+para experiencia de usuario. CP solo con prefijo explícito sacrifica recall pero garantiza cero falsos positivos en importes y referencias. Dirección postal se pospone a Beta con NLP (ADR-8).
+
+---
+
+### ADR-15: Chat multi-turn con re-detección completa del array en cada request
+
+**Qué:** La UI envía el array completo `messages` en cada request al endpoint `/api/v1/chat`. El backend re-detecta y re-enmascara TODOS los mensajes con rol `user` del array, no solo el último turno. La UI es agnóstica a la detección.
+
+**Por qué:** Privacidad (GDPR Art. 25, 32) no se delega al cliente. El navegador no es perímetro de confianza: `localStorage` es editable con DevTools, y un cliente modificado podría reenviar mensajes originales sin enmascarar en turnos posteriores. Re-detección por regex es <1ms por mensaje, despreciable. Single source of truth en backend: la lógica de privacidad vive en el proxy, no en el frontend.
+
+**Trade-off:** CPU extra por request (~20ms para conversaciones de 20 mensajes). La detección NO se aplica a mensajes con rol `assistant` o `system`, solo a `user` — esto evita falsos positivos en respuestas generadas por el LLM. El historial de conversación lo mantiene el cliente en `localStorage` (no se persiste en backend), respetando RNF-3. Si la acción es `mask`, el backend inyecta/actualiza un mensaje `system` con la instrucción de privacidad sobre los marcadores `[EMAIL]`, `[DNI]`, `[TELEFONO]`, etc.
+
+---
+
+
 ## Mapeo normativo
 | Requisito del sistema | Regulación | Artículo | Cómo se cumple |
 |---|---|---|---|
@@ -260,7 +308,7 @@ Cliente
 | RAL-1 — Minimización de datos | GDPR | Art. 5(1)(c) — Minimización | Solo se almacenan metadatos operativos, nunca el contenido |
 | RAL-2 — Retención limitada | GDPR | Art. 5(1)(e) — Limitación de plazo | Los registros se eliminan automáticamente a los 90 días |
 | RNF-3 — No persistir prompts ni respuestas | GDPR | Art. 5(1)(f) — Integridad y confidencialidad | El contenido sensible nunca llega a disco |
-| RF-6, RF-19 — Consulta de logs + informe | GDPR | Art. 5(2) — Responsabilidad proactiva | El administrador puede generar evidencia documental de cumplimiento |
+| RF-6 — Consulta de logs | GDPR | Art. 5(2) — Responsabilidad proactiva | El administrador puede generar evidencia documental de cumplimiento mediante los logs filtrables. El informe agregado (RF-19) queda pospuesto a Beta. |
 | RNF-9 — Secrets por variables de entorno | GDPR | Art. 32 — Seguridad del tratamiento | Las credenciales nunca están en código fuente |
 | RAL-4 — Transparencia de bloqueos | AI Act | Art. 13 — Transparencia y comunicación | El usuario sabe cuándo y por qué se bloqueó su solicitud |
 
