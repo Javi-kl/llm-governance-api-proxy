@@ -16,7 +16,7 @@ def test_create_access_token_given_valid_subject_then_returns_decodable_jwt():
     payload = jwt.decode(
         token,
         config.get_settings().SECRET_KEY.get_secret_value(),
-        algorithms=[config.get_settings().ALGORITHM],
+        algorithms=[config.JWT_ALGORITHM],
         options={"verify_exp": False},
     )
 
@@ -32,7 +32,7 @@ def test_create_access_token_given_custom_expiry_then_has_correct_exp_claim():
     payload = jwt.decode(
         token,
         config.get_settings().SECRET_KEY.get_secret_value(),
-        algorithms=[config.get_settings().ALGORITHM],
+        algorithms=[config.JWT_ALGORITHM],
         options={"verify_exp": False},
     )
 
@@ -46,7 +46,7 @@ def test_create_access_token_given_no_expiry_then_uses_default_60_minutes():
     payload = jwt.decode(
         token,
         config.get_settings().SECRET_KEY.get_secret_value(),
-        algorithms=[config.get_settings().ALGORITHM],
+        algorithms=[config.JWT_ALGORITHM],
         options={"verify_exp": False},
     )
 

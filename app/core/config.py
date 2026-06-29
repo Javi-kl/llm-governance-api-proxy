@@ -1,7 +1,10 @@
 from functools import lru_cache
 
-from pydantic import HttpUrl, SecretStr
+from pydantic import HttpUrl, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+JWT_ALGORITHM = "HS256"
 
 
 class Settings(BaseSettings):
@@ -11,7 +14,6 @@ class Settings(BaseSettings):
 
     # JWT
     SECRET_KEY: SecretStr
-    ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
@@ -28,6 +30,15 @@ class Settings(BaseSettings):
     BOOTSTRAP_ADMIN_PASSWORD: SecretStr = SecretStr("")
 
     model_config = SettingsConfigDict(env_file=".env", extra="forbid")
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_secret_key(cls, value: SecretStr) -> SecretStr:
+        """Rechaza secrets vacíos o menores a 32 chars."""
+        secret = value.get_secret_value()
+        if not secret or len(secret) < 32:
+            raise ValueError("SECRET_KEY debe tener al menos 32 caracteres")
+        return value
 
 
 @lru_cache
