@@ -108,5 +108,6 @@ def build_gradio_app() -> gr.Blocks:
         gr.Markdown("# Chat con Gobernanza")
         gr.ChatInterface(
             fn=_chat_handler,
+            chatbot=gr.Chatbot(height="75vh"),
         )
     return demo
