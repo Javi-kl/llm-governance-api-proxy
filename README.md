@@ -9,9 +9,9 @@ Se acompaña de una UI web local y de una API documentada con Swagger.
 
 > Documentación: [`architecture.md`](./docs/architecture.md) · [`overview.md`](./docs/overview.md) · [`requirements.md`](./docs/requirements.md)
 
-> Presentación: [slides](https://docs.google.com/presentation/d/1HGxZi3C1c7-zMwx_RuyBnGrLH2St4Rl2kG6m66cITv0/edit?usp=sharing)
+> [Presentación](https://docs.google.com/presentation/d/1HGxZi3C1c7-zMwx_RuyBnGrLH2St4Rl2kG6m66cITv0/edit?usp=sharing)
 
-> Video: ... TODO ...
+> [Video](https://drive.google.com/file/d/1yx-5NoVuGaHAtT9YDc5FJv301_lRNaos/view?usp=sharing)
 ---
 
 ## Funcionalidades principales

@@ -1,7 +1,6 @@
-"""Servicio de auditoría del proxy.
-
+"""
 Registra y consulta metadatos de solicitudes sin almacenar prompts
-ni respuestas del proveedor LLM.
+ni respuestas.
 """
 
 from sqlalchemy.orm import Session
