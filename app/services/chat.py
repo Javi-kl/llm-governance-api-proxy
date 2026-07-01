@@ -1,4 +1,4 @@
-"""Orquestador del endpoint POST /api/v1/chat.
+"""
 Coordina detector, policy, provider y audit para procesar el array de mensajes
 del usuario y devolver una respuesta estructurada sin persistir contenido (RNF-3).
 """

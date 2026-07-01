@@ -19,6 +19,7 @@ from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
 from app.routers.health import router as health_router
 from app.routers.web import router as pages_router
+from app.ui.gradio_config import GRADIO_CSS, GRADIO_HEAD
 from app.ui.gradio_chat import build_gradio_app
 from app.core.scheduler import start_scheduler, stop_scheduler
 
@@ -99,4 +100,6 @@ app = gr.mount_gradio_app(
     gradio_app,
     path="/chat",
     auth_dependency=_gradio_auth,
+    css=GRADIO_CSS,
+    head=GRADIO_HEAD,
 )
