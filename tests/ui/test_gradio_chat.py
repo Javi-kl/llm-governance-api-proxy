@@ -11,12 +11,11 @@ import gradio as gr
 from app.core.enums import MessageRole
 from app.core.exceptions import ProviderError, ProviderTimeoutError
 from app.ui.gradio_chat import (
-    _AUTH_ERROR_MESSAGE,
-    _PROVIDER_ERROR_MESSAGE,
     _chat_handler,
     _extract_text_content,
     _history_to_messages,
 )
+from app.ui.gradio_config import AUTH_ERROR_MESSAGE, PROVIDER_ERROR_MESSAGE
 
 
 def _mock_request(username: str | None = None) -> MagicMock:
@@ -40,7 +39,7 @@ def test_given_missing_username_then_returns_auth_error():
 
     result = _chat_handler("hola", [], request)
 
-    assert result == _AUTH_ERROR_MESSAGE
+    assert result == AUTH_ERROR_MESSAGE
 
 
 def test_given_provider_timeout_then_returns_provider_message():
@@ -69,7 +68,7 @@ def test_given_provider_timeout_then_returns_provider_message():
     mock_get_db.assert_called_once()
     mock_users.get_by_id.assert_called_once()
     mock_process_chat.assert_called_once()
-    assert result == _PROVIDER_ERROR_MESSAGE
+    assert result == PROVIDER_ERROR_MESSAGE
 
 
 def test_given_provider_error_then_returns_provider_message():
@@ -90,7 +89,7 @@ def test_given_provider_error_then_returns_provider_message():
         request = _mock_request(username="1")
         result = _chat_handler("hola", [], request)
 
-    assert result == _PROVIDER_ERROR_MESSAGE
+    assert result == PROVIDER_ERROR_MESSAGE
 
 
 def test_given_unexpected_user_lookup_error_then_returns_generic_message():
@@ -107,7 +106,7 @@ def test_given_unexpected_user_lookup_error_then_returns_generic_message():
         result = _chat_handler("hola", [], request)
 
     # No debe propagar la excepción.
-    assert result == _PROVIDER_ERROR_MESSAGE
+    assert result == PROVIDER_ERROR_MESSAGE
 
 
 def test_given_unexpected_error_then_does_not_expose_technical_details():
@@ -125,7 +124,7 @@ def test_given_unexpected_error_then_does_not_expose_technical_details():
         request = _mock_request(username="1")
         result = _chat_handler("hola", [], request)
 
-    assert result == _PROVIDER_ERROR_MESSAGE
+    assert result == PROVIDER_ERROR_MESSAGE
     # El mensaje genérico no debe contener el detalle técnico.
     assert "detalle técnico" not in result
     assert "RuntimeError" not in result

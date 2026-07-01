@@ -13,19 +13,13 @@ from app.db.database import get_db_context
 from app.repositories import users
 from app.schemas.chat import MessageItem
 from app.services.chat import process_chat
+from app.ui.gradio_config import (
+    AUTH_ERROR_MESSAGE,
+    BLOCK_MESSAGE,
+    PROVIDER_ERROR_MESSAGE,
+)
 
 logger = logging.getLogger("gradio_chat")
-
-_BLOCK_MESSAGE = (
-    "⚠️ Tu mensaje contiene información que no podemos procesar. "
-    "Por favor, reformúlalo sin incluir datos sensibles."
-)
-
-_PROVIDER_ERROR_MESSAGE = (
-    "⚠️ El servicio no está disponible en este momento. Inténtalo de nuevo."
-)
-
-_AUTH_ERROR_MESSAGE = "⚠️ No tienes sesión activa. Recarga la página e inicia sesión."
 
 
 def _extract_text_content(content: object) -> str:
@@ -68,7 +62,7 @@ def _chat_handler(message: str, history: list[dict], request: gr.Request) -> str
     """Callback de Gradio ChatInterface. Orquesta la llamada a process_chat()."""
     if not request.username:
         logger.warning("Intento de chat sin usuario autenticado")
-        return _AUTH_ERROR_MESSAGE
+        return AUTH_ERROR_MESSAGE
 
     try:
         with get_db_context() as db:
@@ -77,7 +71,7 @@ def _chat_handler(message: str, history: list[dict], request: gr.Request) -> str
                 logger.warning(
                     "Usuario %s no encontrado o inactivo en chat", request.username
                 )
-                return _AUTH_ERROR_MESSAGE
+                return AUTH_ERROR_MESSAGE
 
             messages = _history_to_messages(message, history)
 
@@ -87,27 +81,38 @@ def _chat_handler(message: str, history: list[dict], request: gr.Request) -> str
                 logger.exception(
                     "Error del proveedor en chat para usuario %s", user.username
                 )
-                return _PROVIDER_ERROR_MESSAGE
+                return PROVIDER_ERROR_MESSAGE
 
         if response.action == "block":
-            return _BLOCK_MESSAGE
+            return BLOCK_MESSAGE
 
         return response.message.content if response.message else ""
     except Exception:
         logger.exception("Error inesperado procesando chat de Gradio")
-        return _PROVIDER_ERROR_MESSAGE
+        return PROVIDER_ERROR_MESSAGE
 
 
 def build_gradio_app() -> gr.Blocks:
     """Construye la app de Gradio con el ChatInterface."""
-    css = """
-    .gradio-container { max-width: 860px !important; margin: 0 auto !important; }
-    footer { display: none !important; }
-    """
-    with gr.Blocks(css=css, title="Chat — LLM Governance Proxy") as demo:
+
+    with gr.Blocks(title="Chat — LLM Governance Proxy") as demo:
         gr.Markdown("# Chat con Gobernanza")
+        # TODO Deuda técnica: el enlace al panel se muestra también a usuarios normales.
+        # /dashboard sigue protegido por require_admin.
+        gr.HTML(
+            """
+            <div class="chat-actions">
+                <a class="chat-action-link" href="/dashboard">Volver al panel</a>
+                <button class="chat-action-button" onclick="window.logoutFromChat()">
+                    Cerrar sesión
+                </button>
+            </div>
+            """
+        )
+
         gr.ChatInterface(
             fn=_chat_handler,
             chatbot=gr.Chatbot(height="75vh"),
+            fill_width=True,
         )
     return demo
