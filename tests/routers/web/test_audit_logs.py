@@ -247,7 +247,7 @@ def test_given_date_from_filter_then_audit_logs_show_matching_logs(
     token = create_token(admin_user.id, admin_user.role)
     client.cookies.set("access_token", token)
 
-    tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+    tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     response = client.get(
         f"/dashboard/logs?date_from={tomorrow}", follow_redirects=False
@@ -271,12 +271,8 @@ def test_given_date_from_filter_then_audit_logs_show_matching_logs(
         ("user_id=abc", "El usuario debe ser un número entero positivo."),
         ("date_from=fecha-mala", "La fecha desde tiene un formato inválido."),
         (
-            "date_from=2026-06-13T12:00&date_to=2026-06-12T12:00",
+            "date_from=2026-06-13&date_to=2026-06-12",
             "La fecha desde no puede ser posterior a la fecha hasta.",
-        ),
-        (
-            "date_from=2026-06-13T12:00:00%2B01:00",
-            "La fecha desde no debe incluir zona horaria.",
         ),
     ],
 )

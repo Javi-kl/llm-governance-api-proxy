@@ -5,7 +5,7 @@ acción, usuario, y rango de fechas vía parámetros de query string.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, date, time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -87,22 +87,32 @@ def _parse_user_id(value: str | None) -> int | None:
     return user_id
 
 
-def _parse_datetime(value: str | None, label: str) -> datetime | None:
-    """Parsea fecha desde ISO 8601. label se usa en el mensaje de error."""
+def _parse_date(value: str | None, label: str) -> date | None:
+    """Parsea fecha en formato YYYY-MM-DD."""
     cleaned = _empty_to_none(value)
     if cleaned is None:
         return None
     try:
-        parsed = datetime.fromisoformat(cleaned)
+        parsed = date.fromisoformat(cleaned)
     except (TypeError, ValueError):
         raise ValueError(f"La fecha {label} tiene un formato inválido.")
 
-    # Rechazar fechas con zona horaria porque la UI usa datetime-local (naive)
-    # y las comparaciones entre naive/aware lanzan TypeError.
-    if parsed.tzinfo is not None:
-        raise ValueError(f"La fecha {label} no debe incluir zona horaria.")
-
     return parsed
+
+
+def _date_start(value: date | None) -> datetime | None:
+    """Convierte date a datetime con la hora 00.00, si el filtro no esta vacio."""
+    if value is None:
+        return None
+
+    return datetime.combine(value, time.min)
+
+
+def _date_end(value: date | None) -> datetime | None:
+    if value is None:
+        return None
+
+    return datetime.combine(value, time.max)
 
 
 def _build_audit_log_filter_from_query(
@@ -129,11 +139,17 @@ def _build_audit_log_filter_from_query(
     try:
         parsed_action = _parse_action(action)
         parsed_user_id = _parse_user_id(user_id)
-        parsed_date_from = _parse_datetime(date_from, "desde")
-        parsed_date_to = _parse_datetime(date_to, "hasta")
+        parsed_date_from = _parse_date(date_from, "desde")
+        parsed_date_to = _parse_date(date_to, "hasta")
+        parsed_datetime_from = _date_start(parsed_date_from)
+        parsed_datetime_to = _date_end(parsed_date_to)
 
         # Validación de rango de fechas
-        if parsed_date_from and parsed_date_to and parsed_date_from > parsed_date_to:
+        if (
+            parsed_datetime_from is not None
+            and parsed_datetime_to is not None
+            and parsed_datetime_from > parsed_datetime_to
+        ):
             raise ValueError("La fecha desde no puede ser posterior a la fecha hasta.")
 
         filter_ = AuditLogFilter(
@@ -141,8 +157,8 @@ def _build_audit_log_filter_from_query(
             page_size=50,
             action=parsed_action,
             user_id=parsed_user_id,
-            date_from=parsed_date_from,
-            date_to=parsed_date_to,
+            date_from=parsed_datetime_from,
+            date_to=parsed_datetime_to,
         )
     except ValueError as exc:
         filter_error = str(exc)
