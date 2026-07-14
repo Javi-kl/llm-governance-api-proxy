@@ -21,7 +21,10 @@ venv/
 ENV/
 env/
 .conda/
-.envrc
+
+# Caché local de nix
+.direnv/
+
 # Python
 __pycache__/
 *.py[cod]
