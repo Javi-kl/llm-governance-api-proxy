@@ -29,7 +29,7 @@ class ApiKey(Base):
         nullable=False,
     )
     key_hash: Mapped[str] = mapped_column(
-        String(255), unique=True, index=True, nullable=False
+        String(64), unique=True, index=True, nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
