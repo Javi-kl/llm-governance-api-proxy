@@ -19,3 +19,9 @@ def main() -> None:
 
     except exceptions.UserNotFoundError as exc:
         print(exc.message)
+    except ValueError:
+        print("Nombre de la api key no valido.")
+
+
+if __name__ == "__main__":
+    main()
