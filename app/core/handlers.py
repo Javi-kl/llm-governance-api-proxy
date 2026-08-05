@@ -17,6 +17,7 @@ from app.core.exceptions import (
     ProviderTimeoutError,
     UserAlreadyExistsError,
     UserNotFoundError,
+    ModelNotFoundError,
 )
 from app.schemas.error import ErrorDetail, ErrorEnvelope
 
@@ -134,4 +135,11 @@ def register_exception_handlers(app: FastAPI) -> None:
         return error_response(
             500,
             ErrorEnvelope(code="INTERNAL_ERROR", message="Error interno del servidor"),
+        )
+
+    @app.exception_handler(ModelNotFoundError)
+    async def model_not_found_handler(request: Request, exc: ModelNotFoundError):
+        return error_response(
+            404,
+            ErrorEnvelope(code="MODEL_NOT_FOUND", message="Modelo no disponible"),
         )
