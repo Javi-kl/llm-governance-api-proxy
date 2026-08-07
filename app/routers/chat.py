@@ -1,10 +1,11 @@
 from typing import Annotated
 import time
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from app.services.chat import process_chat_completion
+from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.database import get_db
 from app.schemas.chat import (
@@ -25,19 +26,26 @@ router = APIRouter(prefix="/chat/completions", tags=["openai"])
     response_model=ChatCompletionResponse,
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("10/minute")
 def create_chat_completion(
-    request: ChatCompletionRequest,
+    request: Request,
+    chat_request: ChatCompletionRequest,
     current_user: Annotated[User, Depends(api_key_auth_dep)],
     db: Annotated[Session, Depends(get_db)],
 ) -> ChatCompletionResponse:
 
-    result = process_chat_completion(request.messages, request.model, current_user, db)
+    result = process_chat_completion(
+        chat_request.messages,
+        chat_request.model,
+        current_user,
+        db,
+    )
 
-    return _adapt_to_chat_completion_response(result, request)
+    return _adapt_to_chat_completion_response(result, chat_request)
 
 
 def _adapt_to_chat_completion_response(
-    result: ChatResponse, request: ChatCompletionRequest
+    result: ChatResponse, chat_request: ChatCompletionRequest
 ) -> ChatCompletionResponse:
 
     if result.action == "block":
@@ -57,7 +65,7 @@ def _adapt_to_chat_completion_response(
     return ChatCompletionResponse(
         id=f"chatcmpl-{result.request_id}",
         created=int(time.time()),
-        model=request.model,
+        model=chat_request.model,
         choices=[
             ChatCompletionChoice(
                 index=0,
