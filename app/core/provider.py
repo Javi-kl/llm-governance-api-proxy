@@ -21,6 +21,7 @@ def send(messages: list[dict[str, str]]) -> str:
         "Content-Type": "application/json",
     }
     base_url = str(settings.LLM_BASE_URL).rstrip("/")
+
     try:
         response = httpx.post(
             f"{base_url}/chat/completions",
@@ -30,13 +31,22 @@ def send(messages: list[dict[str, str]]) -> str:
         )
         response.raise_for_status()
         data = response.json()
-        return data["choices"][0]["message"]["content"]
+        content = data["choices"][0]["message"]["content"]
+
     except httpx.TimeoutException:
         raise ProviderTimeoutError() from None
+
     except httpx.HTTPStatusError as exc:
         status = exc.response.status_code if exc.response is not None else None
         raise ProviderError(status_code=status) from None
+
     except httpx.RequestError:
         raise ProviderError() from None
-    except (KeyError, IndexError, TypeError):
+
+    except (ValueError, KeyError, IndexError, TypeError):
         raise ProviderError() from None
+
+    if not isinstance(content, str):
+        raise ProviderError()
+    
+    return content
