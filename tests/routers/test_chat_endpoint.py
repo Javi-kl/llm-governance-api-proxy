@@ -2,10 +2,12 @@ from unittest.mock import patch
 import pytest
 
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import HasDescriptionCode
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.exceptions import ProviderError, ProviderTimeoutError
+from app.schemas.chat import MessageItem, MessageRole, ChatResponse
 from app.db.models.user import User
 from app.services.policy import PRIVACY_SYSTEM_PROMPT
 from app.services.api_keys import create_for_user
@@ -235,3 +237,42 @@ def test_given_unsupported_model_then_returns_404_without_processing_chat(
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "MODEL_NOT_FOUND"
     mock_process_chat.assert_not_called()
+
+
+def test_given_chat_limit_exceeded_then_returns_429(
+    client: TestClient,
+    api_key_headers: dict[str, str],
+):
+    payload = {
+        "model": get_settings().LLM_MODEL,
+        "messages": [{"role": "user", "content": "Hola"}],
+    }
+    chat_result = ChatResponse(
+        request_id="rate-limit-test",
+        action="allow",
+        message=MessageItem(
+            role=MessageRole.ASSISTANT,
+            content="OK",
+        ),
+        detected_categories=[],
+        reason=None,
+    )
+    with patch(
+        "app.routers.chat.process_chat_completion",
+        return_value=chat_result,
+    ) as mock_process_chat:
+        for _ in range(10):
+            response = client.post(
+                "/v1/chat/completions",
+                headers=api_key_headers,
+                json=payload,
+            )
+            assert response.status_code == 200
+        response = client.post(
+            "/v1/chat/completions",
+            headers=api_key_headers,
+            json=payload,
+        )
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
+    assert mock_process_chat.call_count == 10
