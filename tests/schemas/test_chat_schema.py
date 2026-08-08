@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from app.core.enums import MessageRole
 from app.schemas.chat import (
+    MAX_MESSAGES_LENGTH,
     ChatCompletionRequest,
     ChatResponse,
     MAX_CONTENT_LENGTH,
@@ -71,3 +72,26 @@ def test_given_too_long_message_content_then_raises_validation_error():
 
     with pytest.raises(ValidationError, match="caracteres"):
         MessageItem(role=MessageRole.USER, content=content)
+
+
+def test_given_too_many_messages_then_raises_validation_error():
+    messages = [
+        MessageItem(role=MessageRole.USER, content="Hola")
+        for _ in range(MAX_MESSAGES_LENGTH + 1)
+    ]
+    with pytest.raises(ValidationError, match="limite"):
+        ChatCompletionRequest(
+            model="test-model",
+            messages=messages,
+        )
+
+
+def test_given_stream_true_then_raises_validation_error():
+    with pytest.raises(ValidationError):
+        ChatCompletionRequest.model_validate(
+            {
+                "model": "test-model",
+                "messages": [{"role": "user", "content": "Hola"}],
+                "stream": True,
+            }
+        )
