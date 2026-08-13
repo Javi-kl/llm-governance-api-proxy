@@ -138,3 +138,17 @@ def test_given_short_secret_key_then_settings_validation_fails():
             LLM_BASE_URL=HttpUrl("https://api.openai.com/v1"),
             LLM_MODEL="gpt-4o-mini",
         )
+
+
+def test_given_non_llm_model_then_settings_validation_fails():
+    with pytest.raises(ValidationError, match="LLM_MODEL"):
+        Settings(
+            DATABASE_URL="postgresql://user:pass@localhost:5432/app",
+            TEST_DATABASE_URL="postgresql://user:pass@localhost:5432/app_test",
+            SECRET_KEY=SecretStr(
+                "43dcf36d1b071a5d02946b0291ac7fbabf66fd4d063d98ff89965546b928852e"
+            ),
+            LLM_API_KEY=SecretStr("test-api-key"),
+            LLM_BASE_URL=HttpUrl("https://api.openai.com/v1"),
+            LLM_MODEL="",
+        )
