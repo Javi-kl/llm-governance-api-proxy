@@ -1,8 +1,8 @@
 from unittest.mock import patch
 import pytest
 
+from urllib.parse import urlparse
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import HasDescriptionCode
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -276,3 +276,81 @@ def test_given_chat_limit_exceeded_then_returns_429(
     assert response.status_code == 429
     assert response.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
     assert mock_process_chat.call_count == 10
+
+
+def test_given_valid_api_key_then_lists_configured_model(
+    client: TestClient,
+    api_key_headers: dict[str, str],
+):
+    response = client.get(
+        "/v1/models",
+        headers=api_key_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["object"] == "list"
+    assert len(body["data"]) == 1
+
+    data = body["data"][0]
+    assert data["id"] == get_settings().LLM_MODEL
+    assert data["object"] == "model"
+    assert isinstance(data["created"], int)
+
+    expected = urlparse(str(get_settings().LLM_BASE_URL)).hostname or "unknown"
+    assert data["owned_by"] == expected
+
+
+def test_given_configured_model_then_retrieve_returns_bare_model(
+    client: TestClient,
+    api_key_headers: dict[str, str],
+):
+    response = client.get(
+        f"/v1/models/{get_settings().LLM_MODEL}",
+        headers=api_key_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["id"] == get_settings().LLM_MODEL
+    assert body["object"] == "model"
+    assert isinstance(body["created"], int)
+
+    expected = urlparse(str(get_settings().LLM_BASE_URL)).hostname or "unknown"
+    assert body["owned_by"] == expected
+
+
+def test_given_unknown_model_then_returns_404(
+    client: TestClient,
+    api_key_headers: dict[str, str],
+):
+    response = client.get(
+        f"/v1/models/{get_settings().LLM_MODEL}-unsupported",
+        headers=api_key_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "MODEL_NOT_FOUND"
+
+
+def test_given_multiple_calls_then_created_stays_stable(
+    client: TestClient,
+    api_key_headers: dict[str, str],
+):
+    response_1 = client.get(
+        "/v1/models",
+        headers=api_key_headers,
+    )
+
+    response_2 = client.get(
+        "/v1/models",
+        headers=api_key_headers,
+    )
+
+    data_body_1 = response_1.json()["data"][0]
+    data_body_2 = response_2.json()["data"][0]
+    created_1 = data_body_1["created"]
+    created_2 = data_body_2["created"]
+
+    assert created_1 == created_2
