@@ -39,7 +39,9 @@ def test_given_no_api_key_then_returns_401(client: TestClient):
     )
 
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "UNAUTHORIZED"
+    assert response.json()["error"]["type"] == "authentication_error"
+    assert response.json()["error"]["code"] is None
+    assert response.json()["error"]["param"] is None
 
 
 def test_given_empty_messages_array_then_returns_422(
@@ -57,8 +59,8 @@ def test_given_empty_messages_array_then_returns_422(
 
     assert response.status_code == 422
     body = response.json()
-    assert body["error"]["code"] == "VALIDATION_ERROR"
-    assert "user" in str(body["error"])
+    assert body["error"]["type"] == "invalid_request_error"
+    assert body["error"]["param"] == "messages"
 
 
 def test_given_clean_messages_then_returns_allow(
@@ -173,7 +175,7 @@ def test_given_provider_timeout_then_returns_504(
     assert response.status_code == 504
     body = response.json()
 
-    assert body["error"]["code"] == "UPSTREAM_TIMEOUT"
+    assert body["error"]["type"] == "api_error"
     assert "proveedor" in body["error"]["message"].lower()
 
 
@@ -199,7 +201,7 @@ def test_given_provider_error_then_returns_502(
 
     assert response.status_code == 502
     body = response.json()
-    assert body["error"]["code"] == "UPSTREAM_ERROR"
+    assert body["error"]["type"] == "api_error"
     assert "proveedor" in body["error"]["message"].lower()
 
 
@@ -215,7 +217,7 @@ def test_given_non_bearer_scheme_then_return_401(
         },
     )
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "UNAUTHORIZED"
+    assert response.json()["error"]["type"] == "authentication_error"
 
 
 def test_given_unsupported_model_then_returns_404_without_processing_chat(
@@ -235,7 +237,7 @@ def test_given_unsupported_model_then_returns_404_without_processing_chat(
         )
 
     assert response.status_code == 404
-    assert response.json()["error"]["code"] == "MODEL_NOT_FOUND"
+    assert response.json()["error"]["type"] == "not_found_error"
     mock_process_chat.assert_not_called()
 
 
@@ -274,7 +276,7 @@ def test_given_chat_limit_exceeded_then_returns_429(
             json=payload,
         )
     assert response.status_code == 429
-    assert response.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
+    assert response.json()["error"]["type"] == "rate_limit_error"
     assert mock_process_chat.call_count == 10
 
 
@@ -331,7 +333,7 @@ def test_given_unknown_model_then_returns_404(
     )
 
     assert response.status_code == 404
-    assert response.json()["error"]["code"] == "MODEL_NOT_FOUND"
+    assert response.json()["error"]["type"] == "not_found_error"
 
 
 def test_given_multiple_calls_then_created_stays_stable(

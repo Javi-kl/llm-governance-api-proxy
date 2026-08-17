@@ -7,8 +7,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.core.error_response import error_response
-from app.schemas.error import ErrorEnvelope
+from app.core.error_response import _error_response_for
 
 logger = logging.getLogger("rate_limit")
 
@@ -19,13 +18,14 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
         request.client.host if request.client else "unknown",
         request.url.path,
     )
-    response = error_response(
+    response = _error_response_for(
+        request,
         429,
-        ErrorEnvelope(
-            code="RATE_LIMIT_EXCEEDED",
-            message="Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
-        ),
+        message="Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
+        code="RATE_LIMIT_EXCEEDED",
+        openai_type="rate_limit_error",
     )
+
     response = request.app.state.limiter._inject_headers(
         response, request.state.view_rate_limit
     )

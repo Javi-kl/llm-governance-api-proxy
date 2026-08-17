@@ -1,12 +1,11 @@
 """Traduce excepciones de dominio y errores de Pydantic
-a respuestas HTTP con el envelope RF-8."""
+a respuestas HTTP con el envelope de RF-8 y OpenAI."""
 
 import logging
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 
-from app.core.error_response import error_response
 from app.core.exceptions import (
     CannotModifyAdminError,
     InactiveUserError,
@@ -19,7 +18,8 @@ from app.core.exceptions import (
     UserNotFoundError,
     ModelNotFoundError,
 )
-from app.schemas.error import ErrorDetail, ErrorEnvelope
+from app.core.error_response import _error_response_for
+from app.schemas.error import ErrorDetail
 
 logger = logging.getLogger("error_handlers")
 
@@ -30,116 +30,140 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def invalid_credentials_handler(
         request: Request, exc: InvalidCredentialsError
     ):
-        return error_response(
+        return _error_response_for(
+            request,
             401,
-            ErrorEnvelope(code="UNAUTHORIZED", message="Credenciales no válidas"),
+            message="Credenciales no válidas",
+            code="UNAUTHORIZED",
+            openai_type="authentication_error",
         )
 
     @app.exception_handler(PermissionDeniedError)
     async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
-        return error_response(
+        return _error_response_for(
+            request,
             403,
-            ErrorEnvelope(code="FORBIDDEN", message="No tienes permiso para hacer eso"),
+            message="No tienes permiso para hacer eso",
+            code="FORBIDDEN",
+            openai_type="permission_error",
         )
 
     @app.exception_handler(UserNotFoundError)
     async def user_not_found_handler(request: Request, exc: UserNotFoundError):
-        return error_response(
+        return _error_response_for(
+            request,
             404,
-            ErrorEnvelope(code="USER_NOT_FOUND", message="Usuario no encontrado"),
+            message="Usuario no encontrado",
+            code="USER_NOT_FOUND",
+            openai_type="not_found_error",
         )
 
     @app.exception_handler(CannotModifyAdminError)
     async def cannot_modify_admin_handler(
         request: Request, exc: CannotModifyAdminError
     ):
-        return error_response(
+        return _error_response_for(
+            request,
             422,
-            ErrorEnvelope(
-                code="ADMIN_NOT_MANAGEABLE",
-                message="El administrador no puede ser modificado.",
-            ),
+            message="El administrador no puede ser modificado",
+            code="ADMIN_NOT_MANAGEABLE",
+            openai_type="invalid_request_error",
         )
 
     @app.exception_handler(InactiveUserError)
     async def inactive_user_handler(request: Request, exc: InactiveUserError):
-        return error_response(
+        return _error_response_for(
+            request,
             422,
-            ErrorEnvelope(code="USER_INACTIVE", message="El usuario está desactivado."),
+            message="El usuario está desactivado",
+            code="USER_INACTIVE",
+            openai_type="invalid_request_error",
         )
 
     @app.exception_handler(PasswordReuseError)
     async def password_reuse_handler(request: Request, exc: PasswordReuseError):
-        return error_response(
+        return _error_response_for(
+            request,
             400,
-            ErrorEnvelope(
-                code="PASSWORD_REUSE",
-                message="La nueva contraseña no puede ser igual a la actual",
-            ),
+            message="La nueva contraseña no puede ser igual a la actual",
+            code="PASSWORD_REUSE",
+            openai_type="invalid_request_error",
         )
 
     @app.exception_handler(UserAlreadyExistsError)
     async def user_already_exists_handler(
         request: Request, exc: UserAlreadyExistsError
     ):
-        return error_response(
+        return _error_response_for(
+            request,
             409,
-            ErrorEnvelope(
-                code="USER_ALREADY_EXISTS",
-                message="Este username ya está registrado",
-            ),
+            message="Este nombre de usuario ya está registrado",
+            code="USER_ALREADY_EXISTS",
+            openai_type="invalid_request_error",
         )
 
     @app.exception_handler(ProviderTimeoutError)
     async def provider_timeout_handler(request: Request, exc: ProviderTimeoutError):
-        return error_response(
+        return _error_response_for(
+            request,
             504,
-            ErrorEnvelope(
-                code="UPSTREAM_TIMEOUT",
-                message="El proveedor externo no respondió a tiempo",
-            ),
+            message="El proveedor externo no respondió a tiempo",
+            code="UPSTREAM_TIMEOUT",
+            openai_type="api_error",
         )
 
     @app.exception_handler(ProviderError)
     async def provider_error_handler(request: Request, exc: ProviderError):
-        return error_response(
+        return _error_response_for(
+            request,
             502,
-            ErrorEnvelope(
-                code="UPSTREAM_ERROR",
-                message="Error del proveedor externo",
-            ),
+            message="Error del proveedor externo",
+            code="UPSTREAM_ERROR",
+            openai_type="api_error",
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
+        list_of_errors = exc.errors()
         details = [
             ErrorDetail(
                 field=str(error.get("loc", ())[-1]) if error.get("loc") else "body",
                 message=error.get("msg", ""),
                 type=error.get("type", ""),
             )
-            for error in exc.errors()
+            for error in list_of_errors
         ]
-        return error_response(
+        error = list_of_errors[0]
+        param = error["loc"][1] if len(error["loc"]) >= 2 else None
+
+        return _error_response_for(
+            request,
             422,
-            ErrorEnvelope(
-                code="VALIDATION_ERROR",
-                message="La solicitud contiene datos inválidos",
-                details=details,
-            ),
+            message="La solicitud contiene datos inválidos",
+            code="VALIDATION_ERROR",
+            openai_type="invalid_request_error",
+            param=param,
+            details=details,
         )
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
         logger.exception("Error interno no manejado: %s", exc)
-        return error_response(
+
+        return _error_response_for(
+            request,
             500,
-            ErrorEnvelope(code="INTERNAL_ERROR", message="Error interno del servidor"),
+            message="Error interno del servidor",
+            code="INTERNAL_ERROR",
+            openai_type="api_error",
         )
 
     @app.exception_handler(ModelNotFoundError)
     async def model_not_found_handler(request: Request, exc: ModelNotFoundError):
-        return error_response(
+        return _error_response_for(
+            request,
             404,
-            ErrorEnvelope(code="MODEL_NOT_FOUND", message="Modelo no disponible"),
+            message="Modelo no disponible",
+            code="MODEL_NOT_FOUND",
+            openai_type="not_found_error",
         )
