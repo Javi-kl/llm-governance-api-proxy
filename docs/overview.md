@@ -63,7 +63,7 @@ Un proxy local que:
 ### Beta
 - [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
 - [ ] Migrar detector a Presidio
-- [ ] Compatibilidad OpenAI API (Prioridad)
+- [X] Compatibilidad OpenAI API
 - [ ] Detectar prompt injection
 
 ---
