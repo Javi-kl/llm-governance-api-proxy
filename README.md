@@ -3,9 +3,10 @@
 [![License](https://img.shields.io/badge/license-AGPL%203.0-green.svg)](LICENSE)
 
 > Proyecto para centralizar y controlar el uso de modelos LLM de terceros.
-Antes de reenviar cada solicitud al proveedor LLM, inspecciona el texto del historial de mensajes para detectar categorías sensibles,
-aplica una política de: Block/Mask/Allow, y genera trazabilidad para auditoría sin almacenar por defecto prompts y respuestas.
-Se acompaña de una UI web local y de una API documentada con Swagger.
+> Expone una API compatible con OpenAI, de modo que cualquier cliente, UI o librería existente
+> funciona apuntando la base URL al proxy. Inspecciona el historial de mensajes para detectar datos sensibles,
+> aplica una política Block/Mask/Allow y genera trazabilidad de auditoría sin almacenar prompts ni respuestas.
+> Incluye una UI web local, API documentada con Swagger y despliegue con Docker Compose.
 
 > Documentación: [`architecture.md`](./docs/architecture.md) · [`overview.md`](./docs/overview.md) · [`requirements.md`](./docs/requirements.md)
 
@@ -13,15 +14,6 @@ Se acompaña de una UI web local y de una API documentada con Swagger.
 
 > [Video](https://drive.google.com/file/d/1yx-5NoVuGaHAtT9YDc5FJv301_lRNaos/view?usp=sharing)
 ---
-
-## Funcionalidades principales
-- Autenticación con admin y usuarios.
-- Chat proxy hacia proveedor LLM.
-- Detección de datos sensibles.
-- Política allow/mask/block.
-- Auditoría sin almacenar prompts ni respuestas.
-- Panel admin para gestionar usuarios y logs.
-- Ejecución con Docker Compose.
 
 ## Estructura del proyecto
 
@@ -116,33 +108,37 @@ docker compose down -v
 
 ## API compatible con OpenAI
 
-El proxy expone una API compatible con el contrato de OpenAI en `/v1` (chat completions + modelos):
-cualquier cliente de OpenAI funciona apuntando la base URL a `http://localhost:8000/v1`.
+El proxy expone una API compatible con el contrato de OpenAI en `/v1`
+(chat completions + modelos): cualquier cliente de OpenAI funciona apuntando
+la base URL a `http://localhost:8000/v1`.
 
-1. Crea una API key (en el servidor):
-  - podman compose exec -it app python -m scripts.create_api_key
+1. Crea una API key (con la app levantada):
+
+   ```bash
+   docker compose exec -it app python -m scripts.create_api_key
+   ```
+
+   El script se ejecuta dentro del contenedor para usar las mismas
+   dependencias y la misma BD que el proxy. La key solo se muestra una vez.
 
 2. Configura tu cliente (UI de chat, librería, etc.) con:
    - Base URL: `http://localhost:8000/v1`
    - API key: la que imprime el script (`lgp_...`)
 
-  - **Base URL**: Se configura desde donde corre la UI, no desde tu navegador.
-  ```
-  Misma máquina -> 'http://localhost:8000/v1'
-  UI en otra máquina -> 'http://<hostname-del-proxy>:8000/v1'
-  UI en otro contenedor del compose -> 'http://proxy:8000/v1'
-  ```
-  
+> ¿La UI corre en otra máquina que el proxy? Usa la dirección de red de esa máquina
+> como base URL: `http://<hostname-del-proxy>:8000/v1`.
+
 Para verificar la conexión sin una UI:
-  ```bash
-   curl http://localhost:8000/v1/chat/completions \
-     -H "Authorization: Bearer lgp_..." \
-     -H "Content-Type: application/json" \
-     -d '{"model": "TU_MODELO", "messages": [{"role": "user", "content": "Hola"}]}'
-  ```
-  
+
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Authorization: Bearer lgp_..." \
+  -H "Content-Type: application/json" \
+  -d '{"model": "TU_MODELO", "messages": [{"role": "user", "content": "Hola"}]}'
+```
+
 Limitaciones del MVP: sin streaming; los parámetros de generación se ignoran;
-el modelo debe ser el configurado (`LLM_MODEL`). Detalles: ADR-14.
+el modelo debe ser el configurado (`LLM_MODEL`). 
 
 ## Stack
 | Categoría | Tecnología |
@@ -150,7 +146,7 @@ el modelo debe ser el configurado (`LLM_MODEL`). Detalles: ADR-14.
 | Backend | Python 3.12+ / FastAPI |
 | API documentation | OpenAPI / Swagger UI |
 | Database | PostgreSQL 16 + SQLAlchemy 2.0 |
-| Authentication | JWT access + refresh tokens |
+| Auth | JWT access + refresh tokens - API keys(clientes /v1) |
 | Security | Argon2id password hashing  |
 | Containers | Docker / Docker Compose |
 | Testing | pytest |
