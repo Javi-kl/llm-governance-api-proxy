@@ -3,8 +3,7 @@
 [![License](https://img.shields.io/badge/license-AGPL%203.0-green.svg)](LICENSE)
 
 > Proyecto para centralizar y controlar el uso de modelos LLM de terceros.
-> Expone una API compatible con OpenAI, de modo que cualquier cliente, UI o librería existente
-> funciona apuntando la base URL al proxy. Inspecciona el historial de mensajes para detectar datos sensibles,
+> Expone una API compatible con OpenAI. Inspecciona el historial de mensajes para detectar datos sensibles,
 > aplica una política Block/Mask/Allow y genera trazabilidad de auditoría sin almacenar prompts ni respuestas.
 > Incluye una UI web local, API documentada con Swagger y despliegue con Docker Compose.
 
@@ -137,7 +136,8 @@ curl http://localhost:8000/v1/chat/completions \
   -d '{"model": "TU_MODELO", "messages": [{"role": "user", "content": "Hola"}]}'
 ```
 
-Limitaciones del MVP: sin streaming; los parámetros de generación se ignoran;
+Limitaciones del MVP: streaming debe configurarse en OFF en el cliente (no soportado);
+los ajustes del cliente (p. ej. temperature) no se aplican;
 el modelo debe ser el configurado (`LLM_MODEL`). 
 
 ## Stack
