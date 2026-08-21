@@ -209,28 +209,35 @@ Criterios de aceptación:
 - DADO QUE un usuario con rol `admin` intenta acceder a `/chat`, CUANDO el sistema verifica permisos, ENTONCES permite el acceso — el admin también puede usar el proxy.
 - DADO QUE se envían credenciales inválidas desde `/login`, CUANDO el backend rechaza, ENTONCES se muestra un mensaje genérico sin revelar si el usuario existe ni cuál es su rol.
 ---
-**RF-19. Informe de cumplimiento (Pospuesto a Beta)**
 
-> **Decisión**: Este requisito queda fuera del alcance del MVP. Se pospone a la fase Beta.
-> **Motivo**: El informe es un requisito `Should`, no crítico para el núcleo del proxy. La trazabilidad
-> básica necesaria para cumplimiento se cubre con RF-5 (registro de auditoría) y RF-6 (consulta de logs).
->
-> **Atención**: La historia, descripción y criterios de aceptación que siguen corresponden
-> exclusivamente a la fase Beta. No forman parte del MVP ni deben guiar la implementación actual.
-> Se documentan aquí para referencia futura y para no perder el análisis ya realizado.
-
-### Historia y criterios (Beta)
-
-- **Historia (Beta)**: Como responsable de cumplimiento, quiero generar un informe resumido por rango de fechas para disponer de evidencia estructurada ante auditorías internas o externas.
-> Solo accesible por admin. No es un dashboard visual — es un endpoint que devuelve datos agregados en JSON. El frontend lo muestra como tabla descargable.
-
-**Criterios de aceptación (Beta)**:
-- DADO QUE un admin solicita el informe sin fechas, CUANDO llama al endpoint, ENTONCES recibe los datos agregados del periodo completo (desde la primera solicitud registrada).
-- DADO QUE un admin solicita el informe con desde y hasta, CUANDO llama al endpoint, ENTONCES recibe solo los datos de ese rango.
-- DADO QUE hay solicitudes en el rango, CUANDO se genera el informe, ENTONCES incluye: total_solicitudes, desglose_por_accion (allow / mask / block / error), categorias_mas_detectadas (top 5) y ultima_limpieza_retencion (fecha y registros eliminados).
-- DADO QUE no hay solicitudes en el rango, CUANDO se solicita el informe, ENTONCES devuelve todos los contadores a cero con total_solicitudes: 0, sin error.
-- DADO QUE un usuario con rol user intenta acceder, CUANDO llama al endpoint, ENTONCES recibe error 403.
+**RF-20. Compatibilidad con la API de OpenAI**
+- Historia: Como aplicación cliente, quiero usar el proxy desde cualquier UI o librería
+compatible con el contrato de OpenAI apuntando la base URL al proxy, para reutilizar el
+ecosistema existente sin escribir integraciones propias.
+Criterios de aceptación:
+- DADO QUE un cliente envía una petición con API key válida a `POST /v1/chat/completions`, CUANDO el proxy la procesa, ENTONCES responde con el formato `chat.completion` (id, object, created, model, choices) y aplica el mismo pipeline de detección y política que el contrato nativo (ADR-13).
+- DADO QUE la petición a `/v1/*` no incluye API key válida, CUANDO el proxy la recibe, ENTONCES devuelve 401 con `error.type = "authentication_error"`.
+- DADO QUE el body de `/v1/chat/completions` no pasa la validación (p. ej. `messages` vacío), CUANDO el proxy la recibe, ENTONCES devuelve 422 con `error.type = "invalid_request_error"` y `error.param` con el primer campo fallido.
+- DADO QUE la petición especifica un modelo distinto al configurado, CUANDO el proxy la recibe, ENTONCES devuelve 404 con `error.type = "not_found_error"`.
+- DADO QUE la política resuelve `block`, CUANDO el proxy responde, ENTONCES devuelve 200 con `finish_reason = "content_filter"` y el mensaje de bloqueo.
+- DADO QUE el cliente solicita streaming, CUANDO el proxy la recibe, ENTONCES devuelve 422 (no soportado en el MVP).
+- DADO QUE un cliente lista modelos con API key válida, CUANDO llama a `GET /v1/models`, ENTONCES obtiene el modelo configurado.
+- DADO QUE ocurre un error en una petición a `/v1/*`, CUANDO el proxy responde, ENTONCES el cuerpo usa el formato de error de OpenAI (message, type, param, code) — y las peticiones a `/api/v1/*` mantienen el envelope RF-8 (RF-8).
 ---
+
+**RF-21. API keys para clientes del contrato OpenAI**
+- Historia: Como responsable técnico, quiero crear credenciales para los clientes de la
+API `/v1/*` desde el servidor (script CLI), para autenticarlos sin exponer cuentas de
+usuario ni pasar por el login web.
+Criterios de aceptación:
+- DADO QUE ejecuto el script con un usuario existente y un nombre de key, CUANDO se crea la key, ENTONCES se guarda en BD únicamente su hash, la key en claro se imprime una sola vez por terminal y empieza por el prefijo `lgp_`.
+- DADO QUE el usuario indicado no existe, CUANDO ejecuto el script, ENTONCES se muestra un error y no se crea ninguna key.
+- DADO QUE la key fue creada para un usuario activo, CUANDO se usa como Bearer en `Authorization` en una petición a `/v1/*`, ENTONCES la petición se autentica con ese usuario.
+- DADO QUE la key es desconocida, está desactivada o su usuario está inactivo, CUANDO se usa en una petición a `/v1/*`, ENTONCES devuelve 401 con `error.type = "authentication_error"`.
+- DADO QUE una key se ha perdido, CUANDO intento recuperarla, ENTONCES es imposible: solo existe el hash en BD, hay que crear otra.
+- DADO QUE la creación es administrativa y local, CUANDO un cliente intenta crear keys por HTTP, ENTONCES no existe ningún endpoint: la única vía es el script en el servidor.
+---
+
 ## RNFs
 **RNF-1. Despliegue reproducible con Docker**
 - Historia: Como responsable técnico, quiero desplegar el sistema mediante Docker y configuración reproducible para poder instalarlo, ejecutarlo y evaluarlo de forma consistente.
@@ -324,7 +331,7 @@ Criterios de aceptación:
 - DADO QUE se bloquea una solicitud, CUANDO consulto el registro, ENTONCES el campo detected_categories contiene las categorías exactas que causaron el bloqueo.
 - DADO QUE el sistema no guarda el prompt ni la respuesta, CUANDO consulto un registro, ENTONCES no puedo ver el contenido original, pero sí sé qué decisión se tomó y por qué.
 ---
-**RAL-4. Transparencia para el usuario sobre bloqueos (Should)**
+**RAL-4. Transparencia para el usuario sobre bloqueos**
 - Historia: Como usuario interno, quiero saber cuándo una solicitud ha sido bloqueada por política para tener transparencia operativa sobre la actuación del sistema.
 > Solo se informa del bloqueo. El enmascarado es transparente para el usuario (RF-10).
 Criterios de aceptación:

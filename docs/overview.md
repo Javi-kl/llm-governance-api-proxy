@@ -12,6 +12,7 @@ Un proxy local que:
 - Aplica políticas automáticas: enmascara o bloquea según la categoría
 - Registra metadatos de cada solicitud para auditoría (sin guardar el contenido)
 - Ofrece una UI web ligera para login y chat demo, API REST para administración, y documentación Swagger
+- Expone una API compatible con el contrato de OpenAI para conectar UIs y librerías de terceros
 
 ## Casos de uso cubiertos
 
@@ -22,10 +23,11 @@ Un proxy local que:
 
 ## Alcance del MVP
 
-- Proxy API con endpoint `/api/v1/chat` (multi-turn, contrato propio).
+- Proxy API con endpoint de chat `/v1/chat/completions` (multi-turn, contrato OpenAI) y listado de modelos `/v1/models` y `/v1/models/{id}`
 - Detección por regex de 3 categorías: identificación, contacto, financiero
 - Política por categoría (mask/block) definida en código
 - Autenticación: PIN para usuarios, contraseña para admins
+- API keys (`lgp_...`) para clientes de `/v1/*`, creadas solo por script en el servidor
 - Bootstrap del primer admin al desplegar
 - Gestión de usuarios normales vía API de administración (crear, desactivar, resetear PIN). Un único admin;
 - Logs de auditoría sin prompts ni respuestas, retención de 90 días
@@ -40,6 +42,7 @@ Un proxy local que:
 - SSO, MFA, RBAC complejo
 - Procesado documental completo
 - SDK propio ni integraciones externas
+- Streaming en la API de chat (pospuesto)
 - Contador de tokens (pospuesto)
 - Panel de estadísticas visuales avanzadas
 
@@ -64,6 +67,7 @@ Un proxy local que:
 - [ ] Informe de cumplimiento (pospuesto desde MVP — RF-19)
 - [ ] Migrar detector a Presidio
 - [X] Compatibilidad OpenAI API
+- [X] API keys para clientes de la API OpenAI (creación por script)
 - [ ] Detectar prompt injection
 
 ---
@@ -78,25 +82,30 @@ app/
 │   ├── security.py
 │   ├── provider.py
 │   ├── scheduler.py
+│   ├── error_response.py   ← Envelope de error RF-8 y formato OpenAI
 │   └── ...
 ├── db/
 │   ├── database.py         ← Engine, SessionLocal, Base y helpers de sesión
 │   └── models/
 │       ├── user.py         ← Usuario, rol y credenciales hasheadas
 │       ├── refresh_token.py ← Refresh tokens persistidos
-│       └── audit_log.py    ← Metadatos de auditoría
+│       ├── audit_log.py    ← Metadatos de auditoría
+│       └── api_key.py      ← API keys hasheadas para clientes /v1
 ├── dependencies/
-│   └── auth_dep.py         ← Dependencias de autenticación y permisos
+│   ├── auth_dep.py         ← Dependencias de autenticación y permisos
+│   └── api_key_auth_dep.py ← Autenticación por API key (Bearer) para /v1/*
 ├── repositories/
 │   ├── users.py            ← Acceso a datos de usuarios
 │   ├── refresh_tokens.py   ← Acceso a datos de sesiones
-│   └── audit_logs.py       ← Acceso a datos de auditoría
+│   ├── audit_logs.py       ← Acceso a datos de auditoría
+│   └── api_keys.py         ← Acceso a datos de API keys
 ├── schemas/
 │   ├── auth.py             ← Schemas de autenticación
-│   ├── chat.py             ← Schemas del endpoint de chat
+│   ├── chat.py             ← Schemas del contrato de chat (nativo y OpenAI)
 │   ├── admin.py            ← Schemas de administración y auditoría
 │   ├── user.py             ← Schemas de usuario
-│   └── error.py            ← Schemas de error
+│   ├── error.py            ← Schemas de error (RF-8 y OpenAI)
+│   └── models.py           ← Schemas de listado de modelos
 ├── services/
 │   ├── auth.py             ← Login, logout, refresh y cookies
 │   ├── admin.py            ← Gestión de usuarios
@@ -104,12 +113,14 @@ app/
 │   ├── detector.py         ← Detección regex de datos sensibles
 │   ├── policy.py           ← Decisión allow/mask/block
 │   ├── audit.py            ← Creación y consulta de logs
+│   ├── api_keys.py         ← Creación de API keys (script CLI)
 │   └── scheduler.py        ← Limpieza de retención
 ├── routers/
 │   ├── auth.py             ← Endpoints /api/v1/auth/*
-│   ├── chat.py             ← Endpoint /api/v1/chat
+│   ├── chat.py             ← Endpoint /v1/chat/completions (contrato OpenAI)
 │   ├── admin.py            ← Endpoints /api/v1/admin/*
 │   ├── health.py           ← Endpoint /api/v1/health
+│   ├── models.py           ← Endpoint /v1/models (contrato OpenAI)
 │   └── web/
 │       ├── login.py        ← Página de login
 │       ├── dashboard.py    ← Panel principal de admin
@@ -134,7 +145,8 @@ tests/
 
 scripts/
 ├── entrypoint.sh           ← Migraciones + arranque uvicorn
-└── init-test-db.sh         ← Inicialización de base de datos de test
+├── init-test-db.sh         ← Inicialización de base de datos de test
+└── create_api_key.py       ← Creación de API keys desde CLI
 
 .env.example
 docker-compose.yml          ← App + PostgreSQL para ejecución local
