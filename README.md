@@ -114,14 +114,35 @@ docker compose down -v
 ```
 > `docker compose down -v` borra el volumen de PostgreSQL: usuarios, admin bootstrap y audit logs.
 
-### Desarrollo local (opcional)
+## API compatible con OpenAI
 
-Si quieres ejecutar el backend directamente en tu máquina, levanta solo PostgreSQL y arranca Uvicorn:
+El proxy expone una API compatible con el contrato de OpenAI en `/v1` (chat completions + modelos):
+cualquier cliente de OpenAI funciona apuntando la base URL a `http://localhost:8000/v1`.
 
-```bash
-docker compose up -d db
-python -m uvicorn app.main:app --reload
-```
+1. Crea una API key (en el servidor):
+  - podman compose exec -it app python -m scripts.create_api_key
+
+2. Configura tu cliente (UI de chat, librería, etc.) con:
+   - Base URL: `http://localhost:8000/v1`
+   - API key: la que imprime el script (`lgp_...`)
+
+  - **Base URL**: Se configura desde donde corre la UI, no desde tu navegador.
+  ```
+  Misma máquina -> 'http://localhost:8000/v1'
+  UI en otra máquina -> 'http://<hostname-del-proxy>:8000/v1'
+  UI en otro contenedor del compose -> 'http://proxy:8000/v1'
+  ```
+  
+Para verificar la conexión sin una UI:
+  ```bash
+   curl http://localhost:8000/v1/chat/completions \
+     -H "Authorization: Bearer lgp_..." \
+     -H "Content-Type: application/json" \
+     -d '{"model": "TU_MODELO", "messages": [{"role": "user", "content": "Hola"}]}'
+  ```
+  
+Limitaciones del MVP: sin streaming; los parámetros de generación se ignoran;
+el modelo debe ser el configurado (`LLM_MODEL`). Detalles: ADR-14.
 
 ## Stack
 | Categoría | Tecnología |

@@ -20,11 +20,20 @@ class MessageItem(BaseModel):
         return content
 
 
-class ChatRequest(BaseModel):
-    # Cualquier campo no declarado -> 422 (rechaza typos del cliente).
-    model_config = ConfigDict(extra="forbid")
+class ChatResponse(BaseModel):
+    request_id: str
+    action: Literal["allow", "mask", "block", "error"]
+    message: MessageItem | None  # None en block/error
+    detected_categories: list[str]  # [] si no hubo detecciones
+    reason: str | None  # Solo en block/error
 
+
+class ChatCompletionRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    model: str
     messages: list[MessageItem]
+    stream: Literal[False] = False
 
     @field_validator("messages")
     @classmethod
@@ -45,9 +54,15 @@ class ChatRequest(BaseModel):
         return messages
 
 
-class ChatResponse(BaseModel):
-    request_id: str
-    action: Literal["allow", "mask", "block", "error"]
-    message: MessageItem | None  # None en block/error
-    detected_categories: list[str]  # [] si no hubo detecciones
-    reason: str | None  # Solo en block/error
+class ChatCompletionChoice(BaseModel):
+    index: int
+    message: MessageItem
+    finish_reason: Literal["stop", "content_filter"]
+
+
+class ChatCompletionResponse(BaseModel):
+    id: str
+    object: Literal["chat.completion"] = "chat.completion"
+    created: int
+    model: str
+    choices: list[ChatCompletionChoice]

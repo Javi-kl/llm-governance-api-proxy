@@ -242,4 +242,4 @@ def test_given_duplicate_username_then_returns_409(
     assert response.status_code == 409
     body = response.json()
     assert body["error"]["code"] == "USER_ALREADY_EXISTS"
-    assert body["error"]["message"] == "Este username ya está registrado"
+    assert body["error"]["message"] == "Este nombre de usuario ya está registrado"

@@ -11,7 +11,7 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           python314                            
-          ruff                                 
+          pkgs.ruff                                 
           basedpyright                         
           pre-commit
         ];

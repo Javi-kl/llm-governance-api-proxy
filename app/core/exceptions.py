@@ -57,6 +57,12 @@ class ProviderTimeoutError(DomainError):
         super().__init__("El proveedor externo no respondió a tiempo")
 
 
+class ModelNotFoundError(DomainError):
+    def __init__(self, identifier: str | int) -> None:
+        self.identifier = identifier
+        super().__init__(f"Modelo '{identifier}' no disponible")
+
+
 class ProviderError(DomainError):
     def __init__(self, status_code: int | None = None) -> None:
         self.status_code = status_code

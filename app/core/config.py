@@ -40,6 +40,13 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY debe tener al menos 32 caracteres")
         return value
 
+    @field_validator("LLM_MODEL")
+    @classmethod
+    def validate_llm_model(cls, value: str) -> str:
+        if not value:
+            raise ValueError("LLM_MODEL debe tener un modelo configurado")
+        return value
+
 
 @lru_cache
 def get_settings() -> Settings:

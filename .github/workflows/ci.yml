@@ -73,5 +73,6 @@ jobs:
           ALGORITHM: HS256
           COOKIE_SECURE: "0"
           LLM_API_KEY: "sk-fake-key-for-ci"
+          LLM_MODEL: "ci-test-model"
           LLM_BASE_URL: "https://fake-llm-api.example.com"
           BOOTSTRAP_ADMIN_PASSWORD: "ci-bootstrap-pass"

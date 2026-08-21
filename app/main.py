@@ -7,21 +7,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.core import config
-from app.core.bootstrap import bootstrap_admin
-from app.core.exceptions import InvalidCredentialsError
-from app.core.handlers import register_exception_handlers
-from app.core.rate_limit import setup_rate_limiting
+from app.core import config, bootstrap, exceptions, handlers, rate_limit, scheduler
 from app.db.database import get_db_context
 from app.dependencies.auth_dep import get_user_from_request
-from app.routers.admin import router as admin_router
-from app.routers.auth import router as auth_router
-from app.routers.chat import router as chat_router
-from app.routers.health import router as health_router
-from app.routers.web import router as pages_router
-from app.ui.gradio_config import GRADIO_CSS, GRADIO_HEAD
-from app.ui.gradio_chat import build_gradio_app
-from app.core.scheduler import start_scheduler, stop_scheduler
+from app.routers import admin, auth, chat, health, web, models
+from app.ui import gradio_chat, gradio_config
 
 
 logger = logging.getLogger("main")
@@ -32,12 +22,12 @@ STATIC_DIR = Path(__file__).parent / "ui" / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     with get_db_context() as db:
-        bootstrap_admin(db, config.get_settings().BOOTSTRAP_ADMIN_PASSWORD)
-    scheduler = start_scheduler()
+        bootstrap.bootstrap_admin(db, config.get_settings().BOOTSTRAP_ADMIN_PASSWORD)
+    scheduler_var = scheduler.start_scheduler()
     try:
         yield
     finally:
-        stop_scheduler(scheduler)
+        scheduler.stop_scheduler(scheduler_var)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -48,8 +38,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # ── Exception handlers + rate limiting ──────────────────
 
-register_exception_handlers(app)
-setup_rate_limiting(app)
+handlers.register_exception_handlers(app)
+rate_limit.setup_rate_limiting(app)
 
 # ── CORS ────────────────────────────────────────────────
 
@@ -66,14 +56,15 @@ app.add_middleware(
 
 # ── API Routers ─────────────────────────────────────────
 
-app.include_router(health_router, prefix="/api/v1")
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(admin_router, prefix="/api/v1")
-app.include_router(chat_router, prefix="/api/v1")
+app.include_router(health.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/v1")
+app.include_router(models.router, prefix="/v1")
 
 # ── Páginas web ─────────────────────────────────────────
 
-app.include_router(pages_router)
+app.include_router(web.router)
 
 
 # ── Gradio auth dependency ──────────────────────────────
@@ -84,7 +75,7 @@ def _gradio_auth(request: Request) -> str | None:
         try:
             user = get_user_from_request(request, db)
             return str(user.id)
-        except InvalidCredentialsError:
+        except exceptions.InvalidCredentialsError:
             # Caso esperado: usuario sin sesión válida — Gradio rechaza acceso.
             return None
         except Exception:
@@ -94,12 +85,12 @@ def _gradio_auth(request: Request) -> str | None:
 
 # ── Gradio Chat UI ──────────────────────────────────────
 
-gradio_app = build_gradio_app()
+gradio_app = gradio_chat.build_gradio_app()
 app = gr.mount_gradio_app(
     app,
     gradio_app,
     path="/chat",
     auth_dependency=_gradio_auth,
-    css=GRADIO_CSS,
-    head=GRADIO_HEAD,
+    css=gradio_config.GRADIO_CSS,
+    head=gradio_config.GRADIO_HEAD,
 )

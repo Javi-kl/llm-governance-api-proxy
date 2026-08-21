@@ -23,47 +23,43 @@ Tres capas con responsabilidades estrictas:
 | Componente | Capa | Responsabilidad |
 |---|---|---|
 | **Auth** | Router + Service + Dependencies | Login con JWT, refresh, creación/desactivación de usuarios |
-| **Detector** | Service | Pipeline de 3 capas: regex endurecido → validación algorítmica (checksum) → exclusión por contexto negativo. Devuelve posiciones exactas de cada coincidencia para el enmascarado. Ver ADR-14. |
+| **Detector** | Service | Pipeline de 3 capas: regex endurecido → validación algorítmica (checksum) → exclusión por contexto negativo. Devuelve posiciones exactas de cada coincidencia para el enmascarado. |
 | **Policy** | Service | Decide acción (allow/mask/block) según categorías y prioridad |
 | **Provider** | Core | Reenvía el array `messages` saneado (con marcadores si hubo mask + system de privacidad) al LLM externo y devuelve la respuesta del assistant |
-| **Chat** | Service + Router | Orquestador para `/api/v1/chat`: recibe array `messages` → detector (re-detecta y sanea todo el array, no solo el último user) → policy → provider → logger → respuesta. Ver ADR-15. |
+| **Chat** | Service + Router | Orquestador para `/api/v1/chat`: recibe array `messages` → detector (re-detecta y sanea todo el array, no solo el último user) → policy → provider → logger → respuesta. |
 | **Logger** | Service + Repository | Guarda metadatos en audit_logs, consulta con filtros |
 | **Scheduler** | Core | APScheduler: ejecuta limpieza de retención cada 24h |
 
 ## Flujo de una solicitud
 ```
-Cliente (navegador, Gradio, OpenWebUI...)
-  │  POST /api/v1/chat { messages: [{role, content}, ...] }
-  │  (array completo, no solo el último turno)
+Cliente (OpenWebUI, librerías, ...)
+  │  POST /v1/chat/completions  (contrato OpenAI)
   ▼
 ┌─────────────────────────────────┐
-│ Middleware                       │
-│  Auth:   valida JWT → user, rol │
-│  Rate:   verifica IP no baneada │
+│ Middleware / dependencias       │
+│  Auth: API key (/v1) → user    │
+│  Rate: verifica límites         │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
-│ Chat Service                     │
-│  Extrae array `messages`         │
-│  (validación: ≥1 mensaje user)   │
+│ Chat Service                    │
+│  Extrae array messages          │
+│  (validación: ≥1 mensaje user)  │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
-│ Detector                         │
-│  Re-detecta y sanea TODOS los    │
-│  mensajes con rol `user` del     │
-│  array (no solo el último).      │
-│  → ["contacto"]                  │
-│  Ver ADR-15.                     │
+│ Detector                        │
+│  Re-detecta y sanea TODOS los   │
+│  mensajes con rol user del      │
+│  array (no solo el último).     │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
-│ Policy                           │
-│  contacto → mask                 │
-│  (block > mask > allow)          │
-│  Si mask: inyecta mensaje        │
-│  system con instrucción de       │
-│  marcadores                      │
+│ Policy                          │
+│  (block > mask > allow)         │
+│  Si mask: inyecta mensaje       │
+│  system con instrucción de      │
+│  marcadores                     │
 └───┬──────────┬──────────┬───────┘
     ▼          ▼          ▼
   ALLOW      MASK       BLOCK
@@ -71,45 +67,47 @@ Cliente (navegador, Gradio, OpenWebUI...)
     │     ┌────▼────┐     │
     │     │Array    │     │
     │     │saneado: │     │
-    │     │[EMAIL]  │     │
+    │     │EMAIL    │     │
     │     │+ system │     │
     │     │ marker  │     │
     │     └────┬────┘     │
     ▼          ▼          │
 ┌─────────────────┐       │
-│ Provider         │       │
-│ POST → LLM API   │       │
-│ messages array   │       │
-│ (saneado, sin    │       │
-│  persistir nada) │       │
-│ ← respuesta      │       │
-└────────┬─────────┘       │
-         ▼                 ▼
+│ Provider        │       │
+│ POST → LLM API  │       │
+│ messages array  │       │
+│ (saneado, sin   │       │
+│  persistir nada)│       │
+│ ← respuesta     │       │
+└────────┬────────┘       │
+         ▼                ▼
 ┌─────────────────────────────────┐
-│ Logger                           │
-│  INSERT audit_logs               │
+│ Logger                          │
+│  INSERT audit_logs              │
 │  (request_id, user, action,     │
-│   detected_categories, ...)      │
-│  SIN prompt ni respuesta         │
+│   detected_categories, ...)     │
+│  SIN prompt ni respuesta        │
 └───────────────┬─────────────────┘
                 ▼
 ┌─────────────────────────────────┐
-│ Respuesta JSON                   │
-│  { request_id, action,          │
-│    message, ... }                │
-│  UI guarda turno en localStorage│
-│  si allow/mask; no guarda       │
-│  si block.                       │
+│ Respuesta OpenAI (/v1/chat/...) │
+│  chat.completion: id, object,   │
+│  created, model, choices        │
+│  block → finish_reason          │
+│  "content_filter"               │
 └─────────────────────────────────┘
+
+(La UI interna —Gradio— no usa HTTP: llama a process_chat() directamente.)
 ```
 
+---
 ## Diagrama de despliegue
 ### Desarrollo local
 
 ```
-┌──────────────────────────────────────────────┐
-│  Desarrollo local                            │
-│                                              │
+┌─────────────────────────────────────────────┐
+│  Desarrollo local                           │
+│                                             │
 │  ┌──────────────────┐  ┌──────────────────┐ │
 │  │ uvicorn local    │  │ postgres:16      │ │
 │  │ app.main:app     │──│ docker compose   │ │
@@ -120,21 +118,21 @@ Cliente (navegador, Gradio, OpenWebUI...)
 │  │                  │  │  refresh_tokens, │ │
 │  │ CORS habilitado  │  │  audit_logs      │ │
 │  └──────────────────┘  └────────┬─────────┘ │
-│                                 │            │
+│                                 │           │
 │                          ┌──────▼─────────┐ │
-│                          │ volumen: pgdata │ │
-│                          │  /var/lib/...   │ │
+│                          │ volumen: pgdata│ │
+│                          │  /var/lib/...  │ │
 │                          └────────────────┘ │
-│                                              │
-│  ┌──────────────────┐                        │
+│                                             │
+│  ┌──────────────────┐                       │
 │  │ Navegador        │  ↔ :8000              │
-│  │                  │                        │
-│  │ /          → redir│ (login/chat)          │
-│  │ /login     → login│ (Jinja2 + HTMX)       │
-│  │ /chat      → chat │ (Gradio demo)         │
-│  │ /api/v1/*  → REST │ (fetch/JSON)          │
-│  └──────────────────┘                        │
-└──────────────────────────────────────────────┘
+│  │                  │                       │
+│  │ /         → redir│ (login/chat)          │
+│  │ /login    → login│ (Jinja2 + HTMX)       │
+│  │ /chat     → chat │ (Gradio demo)         │
+│  │ /api/v1/* → REST │ (fetch/JSON)          │
+│  └──────────────────┘                       │
+└─────────────────────────────────────────────┘
 ```
 
 
@@ -194,17 +192,8 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
-### ADR-6: Argon2id para hashing de credenciales
 
-**Qué:** Argon2id para hashear contraseñas de admin y PINs de usuarios.
-
-**Por qué:** Memory-hard: resiste ataques con GPU/ASIC. Recomendado por OWASP como estándar actual. Ya usado en proyecto anterior del desarrollador.
-
-**Trade-off:** Verificación más lenta que bcrypt (~ms extra). Imperceptible para un login interactivo.
-
----
-
-### ADR-7: Proveedor LLM único
+### ADR-6: Proveedor LLM único
 
 **Qué:** Un solo proveedor LLM configurado por variables de entorno (`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`). El cliente no elige proveedor en la petición.
 
@@ -214,7 +203,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
-### ADR-8: Detección por regex en MVP, migrable a NLP en futuro
+### ADR-7: Detección por regex en MVP, migrable a NLP en futuro
 
 **Qué:** Detección de datos sensibles con regex puro (módulo `re` de Python). Patrones definidos en un módulo intercambiable (`detector.py`). Sin dependencias externas.
 
@@ -224,7 +213,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
-### ADR-9: Limpieza de retención con APScheduler
+### ADR-8: Limpieza de retención con APScheduler
 
 **Qué:** APScheduler dentro del proceso FastAPI. Una tarea cada 24h ejecuta `DELETE FROM audit_logs WHERE timestamp < now() - interval '90 days'`. Al terminar, registra en logs técnicos: fecha, registros eliminados y rango cubierto.
 
@@ -234,9 +223,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
----
-
-### ADR-11: SlowAPI para rate limiting general
+### ADR-9: SlowAPI para rate limiting general
 
 **Qué:** SlowAPI con backend `memory://` como rate limiter general en los endpoints del proxy. Se aplican decoradores `@limiter.limit` en endpoints sensibles (login, change_password). No se implementa throttling por fallos consecutivos en el MVP.
 
@@ -246,7 +233,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
-### ADR-12: Rollback genérico en get_db para MVP, acotado a futuro
+### ADR-10: Rollback genérico en get_db para MVP, acotado a futuro
 
 **Qué:** `get_db` hace rollback con `except Exception`, no solo con `SQLAlchemyError`. Cualquier excepción no controlada que escape del servicio deshace la transacción entera.
 
@@ -256,7 +243,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
-### ADR-13: Un único administrador, sin creación de admins desde panel
+### ADR-11: Un único administrador, sin creación de admins desde panel
 
 **Qué:** El sistema soporta exactamente una cuenta de administrador. No existe endpoint, panel ni mecanismo para crear administradores adicionales en runtime. El único admin se crea vía bootstrap (RF-13).
 
@@ -266,7 +253,7 @@ Cliente (navegador, Gradio, OpenWebUI...)
 
 ---
 
-### ADR-14: Pipeline de detección con validación algorítmica y exclusión contextual
+### ADR-12: Pipeline de detección con validación algorítmica y exclusión contextual
 
 **Qué:** El detector añade 2 capas sobre el regex base: validación algorítmica (checksum Luhn para tarjetas, MOD 97 para IBAN) y exclusión por contexto negativo (el match se descarta si está precedido por palabras como "pedido" o "factura").
 Dirección postal queda excluida del MVP — requiere NLP, no regex.
@@ -289,7 +276,7 @@ para experiencia de usuario. CP solo con prefijo explícito sacrifica recall per
 
 ---
 
-### ADR-15: Chat multi-turn con re-detección completa del array en cada request
+### ADR-13: Chat multi-turn con re-detección completa del array en cada request
 
 **Qué:** La UI envía el array completo `messages` en cada request al endpoint `/api/v1/chat`. El backend re-detecta y re-enmascara TODOS los mensajes con rol `user` del array, no solo el último turno. La UI es agnóstica a la detección.
 
@@ -299,9 +286,21 @@ para experiencia de usuario. CP solo con prefijo explícito sacrifica recall per
 
 ---
 
+### ADR-14: Compatibilidad con la API de OpenAI
+**Qué:** El proxy usa el contrato público de OpenAI —paths `/v1/chat/completions` y `/v1/models`, formatos de respuesta y de error— para que clientes existentes
+funcionen cambiando solo la base URL. Las peticiones a `/v1/*` autentican con API key propia (Bearer, prefijo `lgp_`, hash en BD; creación solo por script CLI,
+sin endpoint público). Los errores de `/v1/*` usan el formato de OpenAI; la elección entre RF-8 y OpenAI se centraliza por path en los handlers, así que `/api/v1/*` no cambia.
+El flujo reutiliza el pipeline del chat nativo (detector → policy → provider → logger)(ADR-13); solo cambia la capa de presentación. Solo se expone el modelo configurado (ADR-6); cualquier otro → 404.
+
+**Por qué:** El contrato de OpenAI es el estándar de facto: UIs y librerías existentes se conectan sin código propio,
+y el coste es bajo porque el núcleo del proxy ya existe y no se toca.
+
+**Trade-off:** Sin streaming (rechazo explícito con 422). Parámetros de generación (`temperature`, etc.) se ignoran silenciosamente: el cliente puede
+creer que los controla y no es así. Mensajes de error de `/v1/*` en español. Dos formatos de error que mantener sincronizados.
+
 
 ## Mapeo normativo
-| Requisito del sistema | Regulación | Artículo | Cómo se cumple |
+| Requisito del sistema | Regulación | Cómo se cumple |
 |---|---|---|---|
 | RF-2, RF-3 — Detección + enmascarado | GDPR | Art. 25 — Protección de datos desde el diseño | Los datos personales se detectan y enmascaran antes de salir al proveedor |
 | RF-5, RAL-3 — Trazabilidad | AI Act | Art. 12 — Mantenimiento de registros | Cada solicitud genera un registro con trazabilidad completa |

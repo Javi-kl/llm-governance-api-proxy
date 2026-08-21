@@ -16,6 +16,18 @@ from app.schemas.chat import ChatResponse, MessageItem
 from app.services import audit, detector, policy
 
 
+def process_chat_completion(
+    messages: list[MessageItem],
+    requested_model: str,
+    user: User,
+    db: Session,
+) -> ChatResponse:
+    if requested_model != get_settings().LLM_MODEL:
+        raise exceptions.ModelNotFoundError(requested_model)
+
+    return process_chat(messages, user, db)
+
+
 def process_chat(
     messages: list[MessageItem],
     user: User,

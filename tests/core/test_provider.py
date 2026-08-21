@@ -52,11 +52,33 @@ def test_given_provider_connection_error_then_raises_provider_error():
             send([{"role": "user", "content": "X"}])
 
 
-def test_given_malformed_response_then_raises_provider_error():
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"no_choices": "estructura inesperada"},
+        {"choices": []},
+        {"choices": [{"message": {"content": None}}]},
+    ],
+    ids=[
+        "missing_choices",
+        "empty_choices",
+        "null_content",
+    ],
+)
+def test_given_malformed_response_then_raises_provider_error(payload):
     mock_response = MagicMock()
-    mock_response.status_code = 200
     mock_response.raise_for_status.return_value = None
-    mock_response.json.return_value = {"no_choices": "sin estructura esperada"}
+    mock_response.json.return_value = payload
+
+    with patch("httpx.post", return_value=mock_response):
+        with pytest.raises(ProviderError):
+            send([{"role": "user", "content": "X"}])
+
+
+def test_given_invalid_json_then_raises_provider_error():
+    mock_response = MagicMock()
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.side_effect = ValueError("JSON inválido")
 
     with patch("httpx.post", return_value=mock_response):
         with pytest.raises(ProviderError):
