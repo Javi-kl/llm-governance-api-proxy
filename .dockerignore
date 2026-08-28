@@ -8,5 +8,32 @@ __pycache__/
 .git/
 .atl/
 *.pyc
-.coverage
 htmlcov/
+.direnv
+# Tests y coverage — no se necesitan en producción
+tests/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.coverage.*
+*.db
+*.sqlite3
+test_*.db
+
+# Logs
+*.log
+
+# Docs
+docs/
+# Coverage reports
+coverage.xml
+pytest.xml
+test_results/
+
+# Herramientas dev
+.envrc
+flake.nix
+flake.lock
+.pre-commit-config.yaml
+.github/

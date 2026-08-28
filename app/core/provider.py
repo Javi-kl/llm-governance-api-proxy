@@ -48,5 +48,5 @@ def send(messages: list[dict[str, str]]) -> str:
 
     if not isinstance(content, str):
         raise ProviderError()
-    
+
     return content

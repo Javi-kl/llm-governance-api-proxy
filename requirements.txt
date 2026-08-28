@@ -63,3 +63,4 @@ wrapt==2.1.2
 zxcvbn==4.5.0
 gradio==6.16.0
 APScheduler==3.11.2
+pytest-cov==7.1.0
