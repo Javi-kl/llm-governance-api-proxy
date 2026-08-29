@@ -10,21 +10,20 @@
     in {
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
-          python314                            
-          pkgs.ruff                                 
-          basedpyright                         
+          python314
+          pkgs.ruff
+          basedpyright
           pre-commit
         ];
 
-        
+
         LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
           pkgs.stdenv.cc.cc.lib
         ];
-        
+
         shellHook = ''
           echo "🐍 $(python --version) | ruff $(ruff --version | cut -d' ' -f2) | basedpyright $(basedpyright --version)"
         '';
       };
     };
 }
-

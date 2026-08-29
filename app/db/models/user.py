@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.db.models.refresh_token import RefreshToken
     from app.db.models.api_key import ApiKey
 
+
 class User(Base):
     __tablename__ = "users"
 

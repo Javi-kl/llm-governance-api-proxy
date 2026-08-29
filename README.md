@@ -1,6 +1,7 @@
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136.1-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-AGPL%203.0-green.svg)](LICENSE)
+[![Coverage](https://codecov.io/gh/Javi-kl/llm-governance-api-proxy/branch/main/graph/badge.svg)](https://codecov.io/gh/Javi-kl/llm-governance-api-proxy)
 
 > Proyecto para centralizar y controlar el uso de modelos LLM de terceros.
 > Expone una API compatible con OpenAI. Inspecciona el historial de mensajes para detectar datos sensibles,
@@ -138,7 +139,7 @@ curl http://localhost:8000/v1/chat/completions \
 
 Limitaciones del MVP: streaming debe configurarse en OFF en el cliente (no soportado);
 los ajustes del cliente (p. ej. temperature) no se aplican;
-el modelo debe ser el configurado (`LLM_MODEL`). 
+el modelo debe ser el configurado (`LLM_MODEL`).
 
 ## Stack
 | Categoría | Tecnología |
